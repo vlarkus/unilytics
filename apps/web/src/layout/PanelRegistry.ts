@@ -8,23 +8,39 @@ export interface PanelProps {
 }
 
 export type PanelComponent = React.ComponentType<PanelProps>;
+export interface PanelDefinition {
+    type: string;
+    displayName: string;
+}
+
+interface PanelRegistration {
+    component: PanelComponent;
+    displayName: string;
+}
 
 class PanelRegistry {
-    private panels: Map<string, PanelComponent> = new Map();
+    private panels: Map<string, PanelRegistration> = new Map();
 
-    register(type: string, component: PanelComponent) {
+    register(type: string, component: PanelComponent, displayName: string = type) {
         if (this.panels.has(type)) {
             console.warn(`Panel type "${type}" is already registered. Overwriting.`);
         }
-        this.panels.set(type, component);
+        this.panels.set(type, { component, displayName });
     }
 
     get(type: string): PanelComponent | undefined {
-        return this.panels.get(type);
+        return this.panels.get(type)?.component;
     }
 
-    getAvailablePanels(): string[] {
-        return Array.from(this.panels.keys());
+    getDisplayName(type: string): string {
+        return this.panels.get(type)?.displayName ?? type;
+    }
+
+    getAvailablePanels(): PanelDefinition[] {
+        return Array.from(this.panels.entries()).map(([type, panel]) => ({
+            type,
+            displayName: panel.displayName,
+        }));
     }
 }
 

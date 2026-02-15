@@ -5,10 +5,16 @@ import 'flexlayout-react/style/light.css';
 import { panelRegistry, defaultLayout } from './PanelRegistry';
 import { WelcomePanel } from './panels/BuiltInPanels';
 import { StyleGuidePanel } from './panels/StyleGuidePanel';
+import { RobotConnectionPanel } from './panels/RobotConnectionPanel';
+import { TelemetryTablePanel } from './panels/TelemetryTablePanel';
+import { PacketSelectionPanel } from './panels/PacketSelectionPanel';
 
 // Register built-in panels
-panelRegistry.register('WelcomePanel', WelcomePanel);
-panelRegistry.register('StyleGuidePanel', StyleGuidePanel);
+panelRegistry.register('WelcomePanel', WelcomePanel, 'Welcome');
+panelRegistry.register('StyleGuidePanel', StyleGuidePanel, 'UI Reference');
+panelRegistry.register('RobotConnectionPanel', RobotConnectionPanel, 'Robot Connection');
+panelRegistry.register('TelemetryTablePanel', TelemetryTablePanel, 'Telemetry Table');
+panelRegistry.register('PacketSelectionPanel', PacketSelectionPanel, 'Packet Selection');
 
 interface MainScreenProps {
     onOpenSettings: () => void;
@@ -40,26 +46,28 @@ export const MainScreen: React.FC<MainScreenProps> = ({ onOpenSettings }) => {
         return <div className="flex items-center justify-center h-full text-muted-foreground">Panel type "{componentType}" not found.</div>;
     };
 
-    const onAddPanel = (type: string) => {
+    const onAddPanel = (panelType: string) => {
         let parentId = 'root';
         const location = DockLocation.CENTER;
         const mainWorkspaceTabset = model.getFirstTabSet();
         if (mainWorkspaceTabset) {
             parentId = mainWorkspaceTabset.getId();
         }
+        const panelDisplayName = panelRegistry.getDisplayName(panelType);
 
         model.doAction(Actions.addNode({
             type: 'tab',
-            component: type,
-            name: type,
-            id: `${type}-${nextPanelId.current++}`
+            component: panelType,
+            name: panelDisplayName,
+            id: `${panelType}-${nextPanelId.current++}`
         }, parentId, location, -1));
 
         setIsAddPanelOpen(false);
     };
 
     const availablePanels = panelRegistry.getAvailablePanels().filter(p =>
-        p.toLowerCase().includes(searchQuery.toLowerCase())
+        p.displayName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        p.type.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
     return (
@@ -101,13 +109,13 @@ export const MainScreen: React.FC<MainScreenProps> = ({ onOpenSettings }) => {
                                 {/* Panel List */}
                                 <div className="max-h-60 overflow-y-auto py-1">
                                     {availablePanels.length > 0 ? (
-                                        availablePanels.map(panelName => (
+                                        availablePanels.map(panel => (
                                             <button
-                                                key={panelName}
+                                                key={panel.type}
                                                 className="ui-menu-item"
-                                                onClick={() => onAddPanel(panelName)}
+                                                onClick={() => onAddPanel(panel.type)}
                                             >
-                                                {panelName}
+                                                {panel.displayName}
                                             </button>
                                         ))
                                     ) : (
