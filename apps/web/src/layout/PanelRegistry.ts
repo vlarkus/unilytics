@@ -22,6 +22,10 @@ class PanelRegistry {
     get(type: string): PanelComponent | undefined {
         return this.panels.get(type);
     }
+
+    getAvailablePanels(): string[] {
+        return Array.from(this.panels.keys());
+    }
 }
 
 export const panelRegistry = new PanelRegistry();
@@ -30,8 +34,9 @@ export const panelRegistry = new PanelRegistry();
 export const defaultLayout: IJsonModel = {
     global: {
         tabEnableClose: true,
-        tabEnableFloat: true,
+        tabEnableFloat: false,
         tabSetEnableMaximize: true,
+        splitterSize: 8, // Matches var(--gap)
     },
     borders: [],
     layout: {

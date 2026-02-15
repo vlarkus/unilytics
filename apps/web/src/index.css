@@ -40,6 +40,10 @@
   --accent-primary: #3b82f6;
   /* Blue 500 */
   --accent-glow: rgba(59, 130, 246, 0.5);
+
+  /* Spacing */
+  --gap: 5px;
+  /* Single source of truth for gaps/padding */
 }
 
 /* -------------------------------------------------------------------------- */
@@ -87,6 +91,14 @@ body {
 /*                           FlexLayout Overrides                             */
 /* -------------------------------------------------------------------------- */
 
+/* Global Cleanups */
+.flexlayout__layout * {
+  background-image: none !important;
+  /* Kill all default gradients */
+  box-sizing: border-box;
+}
+
+/* Main Layout Container */
 /* Main Layout Container */
 .flexlayout__layout {
   background-color: var(--bg-app) !important;
@@ -100,6 +112,10 @@ body {
   background-color: var(--bg-splitter) !important;
   border: none !important;
   transition: background-color 0.2s;
+  width: var(--gap) !important;
+  /* Use gap for splitter width */
+  height: var(--gap) !important;
+  /* Use gap for splitter height (in vertical split) */
 }
 
 .flexlayout__splitter:hover,
@@ -111,50 +127,82 @@ body {
 .flexlayout__tabset {
   background-color: var(--bg-panel) !important;
   border: 1px solid var(--border-subtle) !important;
-  border-radius: 0px;
-  /* Keep it sharp for dashboard look */
+  /* Single outer border */
+  border-radius: 4px;
+  /* Slight radius for the panel bundle */
   overflow: hidden;
 }
 
 .flexlayout__tabset_header {
-  background-color: var(--bg-header) !important;
+  /* Flat background, no gradients */
+  background: var(--bg-header) !important;
+  background-image: none !important;
   border-bottom: 1px solid var(--border-subtle) !important;
-  height: 36px !important;
-  /* Slightly taller for touch targets */
-  padding-left: 0 !important;
+  height: 32px !important;
+  /* Compact header */
+  padding: 0 4px !important;
+  /* Minimal padding */
   box-shadow: none !important;
+  display: flex;
+  align-items: center;
+}
+
+/* Remove weird padding from tab bar container */
+.flexlayout__tabset_tabbar_outer {
+  background-color: transparent !important;
+  padding: 2px 4px !important;
+  /* Uniform padding for header container */
+  margin: 0 !important;
 }
 
 /* Individual Tabs */
 .flexlayout__tab_button {
   background-color: transparent !important;
+  background-image: none !important;
   color: var(--text-secondary) !important;
   border: none !important;
   font-family: var(--font-family) !important;
-  font-size: 13px !important;
+  font-size: 12px !important;
   font-weight: 500 !important;
-  padding: 0 16px !important;
-  margin: 0 !important;
-  height: 35px !important;
-  /* Match header height minus border */
+  margin: 2px 2px 0 2px !important;
+  /* Vertical gap is 2px top */
+  /* Let's make it symmetric. */
+  /* If header is 32px height. Top/Bottom padding needs to be equal. */
+  /* Actually flexlayout uses absolute positioning or flex. */
+  /* Let's set padding top/bottom on the button itself. */
+  padding: 6px 12px !important;
+  /* 6px top/bottom, 12px left/right */
+  height: auto !important;
+  /* Let padding define height */
+  line-height: 1 !important;
+
   display: flex !important;
   align-items: center !important;
   cursor: pointer !important;
-  transition: all 0.2s ease;
-  border-top: 2px solid transparent !important;
-  /* Pre-allocate space for active indicator */
+  border-radius: 4px 4px 0 0 !important;
+  transition: all 0.15s ease;
+}
+
+/* Hover State */
+.flexlayout__tab_button:hover:not(.flexlayout__tab_button--selected) {
+  background-color: var(--bg-hover) !important;
+  color: var(--text-primary) !important;
 }
 
 /* Active Tab */
 .flexlayout__tab_button--selected {
-  background-color: var(--bg-active) !important;
+  background-color: var(--bg-panel) !important;
+  /* Seamless connection to content */
   color: var(--text-primary) !important;
-  border-top: 2px solid var(--accent-primary) !important;
-}
-
-.flexlayout__tab_button:hover:not(.flexlayout__tab_button--selected) {
-  background-color: var(--bg-hover) !important;
-  color: var(--text-primary) !important;
+  /* Make it look like it connects to the panel */
+  border: 1px solid var(--border-subtle) !important;
+  border-bottom: 1px solid var(--bg-panel) !important;
+  /* Hide bottom border to merge */
+  margin-bottom: -1px !important;
+  /* Push down to cover header border */
+  z-index: 10;
+  padding: 6px 12px !important;
+  /* Same symmetric padding */
 }
 
 /* Tab Content Area */
@@ -179,8 +227,37 @@ body {
 }
 
 /* Hide Layout artifacts */
+/* Tab Close Button */
+.flexlayout__tab_button_close {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  margin-left: 8px;
+  background-color: transparent !important;
+  color: var(--text-muted);
+  /* Muted so it's not distracting */
+  font-size: 14px;
+  line-height: 16px;
+  text-align: center;
+  border-radius: 4px;
+  cursor: pointer;
+  opacity: 0.7;
+}
+
+.flexlayout__tab_button_close:hover {
+  background-color: var(--bg-hover) !important;
+  color: var(--text-primary);
+  opacity: 1;
+}
+
+/* Ensure trailing element DOES NOT hide functionality but does hide whitespace if needed.
+   By default trailing is just a spacer, but close button is inside tab_button content usually?
+   Actually FlexLayout renders close button separately if tabEnableClose is true.
+*/
 .flexlayout__tab_button_trailing {
-  display: none !important;
+  display: inline-block !important;
+  /* Show it if it contains controls */
+  background: transparent !important;
 }
 
 /* -------------------------------------------------------------------------- */
