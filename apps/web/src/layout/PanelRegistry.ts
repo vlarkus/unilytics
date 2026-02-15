@@ -35,6 +35,8 @@ export const defaultLayout: IJsonModel = {
     global: {
         tabEnableClose: true,
         tabSetEnableMaximize: true,
+        splitterEnableHandle: false,
+        splitterExtra: 10,
         splitterSize: 8, // Matches var(--gap)
     },
     borders: [],

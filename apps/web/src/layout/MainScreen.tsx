@@ -137,6 +137,7 @@ export const MainScreen: React.FC<MainScreenProps> = ({ onOpenSettings }) => {
                     <Layout
                         model={model}
                         factory={factory}
+                        realtimeResize={true}
                         classNameMapper={(className) => className}
                     />
                 </div>
