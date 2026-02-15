@@ -304,18 +304,37 @@ class RobotTelemetryManager {
 
   private createRandomTelemetryDatums = (timestamp: number): TelemetryDatum[] => {
     const phase = timestamp / 1000;
+    const headingDeg = Number((Math.random() * 360).toFixed(2));
+    const xIn = Number((Math.random() * 144 - 72).toFixed(2));
+    const yIn = Number((Math.random() * 144 - 72).toFixed(2));
+    const flywheelSpeedRpm = Math.round(Math.random() * 2000);
+    const deflectorAngle = Number(Math.random().toFixed(3));
+    const yawAngleDeg = Number((Math.random() * 540 - 270).toFixed(2));
+    const ballCount = Math.floor(Math.random() * 4);
+
     const batteryVoltage = Number(
-      (12.5 + Math.sin(phase / 8) * 0.35 + (Math.random() - 0.5) * 0.04).toFixed(2),
+      (12.4 + Math.sin(phase / 7) * 0.45 + (Math.random() - 0.5) * 0.06).toFixed(2),
     );
-    const loopTimeMs = Math.round(18 + Math.sin(phase / 3) * 4 + Math.random() * 2);
-    const robotTempC = Number((43 + Math.sin(phase / 6) * 2.2).toFixed(1));
-    const packetLossPct = Number(Math.max(0, Math.random() * 1.2 - 0.2).toFixed(2));
+    const loopTimeMs = Math.round(14 + Math.random() * 10);
+    const drivetrainSpeedInPerSec = Number((Math.random() * 85).toFixed(2));
+    const intakeCurrentA = Number((2 + Math.random() * 9).toFixed(2));
+    const shooterTempC = Number((36 + Math.random() * 18).toFixed(1));
+    const targetVisible = Math.random() > 0.35;
 
     return [
-      { name: "batteryVoltage", value: batteryVoltage },
+      { name: "headingDeg", value: headingDeg },
+      { name: "xIn", value: xIn },
+      { name: "yIn", value: yIn },
+      { name: "flywheelSpeedRpm", value: flywheelSpeedRpm },
+      { name: "deflectorAngle", value: deflectorAngle },
+      { name: "yawAngleDeg", value: yawAngleDeg },
+      { name: "ballCount", value: ballCount },
       { name: "loopTimeMs", value: loopTimeMs },
-      { name: "robotTempC", value: robotTempC },
-      { name: "packetLossPct", value: packetLossPct },
+      { name: "batteryVoltage", value: batteryVoltage },
+      { name: "drivetrainSpeedInPerSec", value: drivetrainSpeedInPerSec },
+      { name: "intakeCurrentA", value: intakeCurrentA },
+      { name: "shooterTempC", value: shooterTempC },
+      { name: "targetVisible", value: targetVisible },
     ];
   };
 

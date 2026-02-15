@@ -8,6 +8,7 @@ import { StyleGuidePanel } from './panels/StyleGuidePanel';
 import { RobotConnectionPanel } from './panels/RobotConnectionPanel';
 import { TelemetryTablePanel } from './panels/TelemetryTablePanel';
 import { PacketSelectionPanel } from './panels/PacketSelectionPanel';
+import { MonovariateRoseDiagramPanel } from './panels/MonovariateRoseDiagramPanel';
 
 // Register built-in panels
 panelRegistry.register('WelcomePanel', WelcomePanel, 'Welcome');
@@ -15,6 +16,7 @@ panelRegistry.register('StyleGuidePanel', StyleGuidePanel, 'UI Reference');
 panelRegistry.register('RobotConnectionPanel', RobotConnectionPanel, 'Robot Connection');
 panelRegistry.register('TelemetryTablePanel', TelemetryTablePanel, 'Telemetry Table');
 panelRegistry.register('PacketSelectionPanel', PacketSelectionPanel, 'Packet Selection');
+panelRegistry.register('MonovariateRoseDiagramPanel', MonovariateRoseDiagramPanel, 'Monovariate Rose Diagram');
 
 interface MainScreenProps {
     onOpenSettings: () => void;

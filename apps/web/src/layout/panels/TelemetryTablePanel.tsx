@@ -26,11 +26,11 @@ export const TelemetryTablePanel: React.FC<PanelProps> = () => {
         </header>
 
         <section className="ui-card">
-          <div className="mb-3 flex items-center justify-between gap-3">
+          <div className="mb-3 grid gap-2">
             <div className="text-sm text-muted-foreground">
               Rows: <span className="font-medium text-foreground">{rows.length}</span>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center justify-start gap-2">
               <button
                 className="ui-btn ui-btn-secondary"
                 onClick={robotTelemetryManager.generateRandomTelemetrySample}

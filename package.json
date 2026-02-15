@@ -5,6 +5,7 @@
   "private": true,
   "scripts": {
     "dev": "concurrently \"pnpm --filter web dev\" \"pnpm --filter electron-app dev\"",
+    "dev:host": "concurrently \"pnpm --filter web dev:host\" \"pnpm --filter electron-app dev\"",
     "build:web": "pnpm --filter web build",
     "build:electron": "pnpm --filter web build && pnpm --filter electron-app build",
     "build:mobile": "pnpm --filter web build && pnpm --filter mobile-app sync",
