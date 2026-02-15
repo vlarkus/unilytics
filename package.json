@@ -1,13 +1,21 @@
 {
-  "name": "Adaptive-telemetry-dashboard",
+  "name": "adaptive-telemetry-dashboard",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "Multi-platform adaptive telemetry dashboard for FTC",
+  "private": true,
   "scripts": {
+    "dev": "concurrently \"pnpm --filter web dev\" \"pnpm --filter electron-app dev\"",
+    "build:web": "pnpm --filter web build",
+    "build:electron": "pnpm --filter web build && pnpm --filter electron-app build",
+    "build:mobile": "pnpm --filter web build && pnpm --filter mobile-app sync",
+    "open:android": "pnpm --filter mobile-app open:android",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "packageManager": "pnpm@10.29.3"
+  "packageManager": "pnpm@10.29.3",
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
 }

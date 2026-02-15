@@ -1,0 +1,19 @@
+{
+    "name": "mobile-app",
+    "version": "1.0.0",
+    "description": "Mobile wrapper for the web dashboard",
+    "scripts": {
+        "build:web": "pnpm --filter web build",
+        "sync": "cap sync",
+        "open:android": "cap open android",
+        "build:android": "cap add android && cap sync && cap open android"
+    },
+    "dependencies": {
+        "@capacitor/core": "^7.0.1",
+        "@capacitor/android": "^7.0.1",
+        "@capacitor/ios": "^7.0.1"
+    },
+    "devDependencies": {
+        "@capacitor/cli": "^7.0.1"
+    }
+}

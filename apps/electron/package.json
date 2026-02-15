@@ -1,0 +1,32 @@
+{
+    "name": "electron-app",
+    "version": "1.0.0",
+    "main": "dist/main.js",
+    "description": "Electron wrapper for the web dashboard",
+    "scripts": {
+        "clean": "shx rm -rf dist",
+        "prebuild": "pnpm clean && tsc && shx mkdir -p dist/renderer && shx cp -r ../web/dist dist/renderer",
+        "build": "pnpm prebuild && electron-builder",
+        "start": "electron dist/main.js",
+        "dev": "tsc -w & electron dist/main.js"
+    },
+    "build": {
+        "appId": "com.adaptive.telemetry",
+        "productName": "Adaptive Telemetry",
+        "files": [
+            "dist/**/*"
+        ],
+        "directories": {
+            "output": "release"
+        }
+    },
+    "dependencies": {
+        "electron-is-dev": "^3.0.1"
+    },
+    "devDependencies": {
+        "electron": "^33.2.1",
+        "electron-builder": "^25.1.8",
+        "shx": "^0.3.4",
+        "typescript": "^5.7.2"
+    }
+}
