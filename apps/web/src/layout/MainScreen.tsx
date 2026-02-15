@@ -1,14 +1,13 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Layout, Model, TabNode, Actions, DockLocation } from 'flexlayout-react';
 import { Settings, Plus, Search } from 'lucide-react';
-import 'flexlayout-react/style/dark.css';
+import 'flexlayout-react/style/light.css';
 import { panelRegistry, defaultLayout } from './PanelRegistry';
-import { WelcomePanel, TelemetryPanel } from './panels/BuiltInPanels';
+import { WelcomePanel } from './panels/BuiltInPanels';
 import { StyleGuidePanel } from './panels/StyleGuidePanel';
 
 // Register built-in panels
 panelRegistry.register('WelcomePanel', WelcomePanel);
-panelRegistry.register('TelemetryPanel', TelemetryPanel);
 panelRegistry.register('StyleGuidePanel', StyleGuidePanel);
 
 interface MainScreenProps {
@@ -20,6 +19,7 @@ export const MainScreen: React.FC<MainScreenProps> = ({ onOpenSettings }) => {
     const [isAddPanelOpen, setIsAddPanelOpen] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     const addPanelRef = useRef<HTMLDivElement>(null);
+    const nextPanelId = useRef(0);
 
     // Close dropdown when clicking outside
     useEffect(() => {
@@ -34,33 +34,25 @@ export const MainScreen: React.FC<MainScreenProps> = ({ onOpenSettings }) => {
 
     const factory = (node: TabNode) => {
         const componentType = node.getComponent();
-        if (!componentType) return <div className="p-2 text-red-500">Unknown Component</div>;
+        if (!componentType) return <div className="p-2 text-destructive">Unknown Component</div>;
         const Component = panelRegistry.get(componentType);
         if (Component) return <Component node={node} />;
-        return <div className="flex items-center justify-center h-full text-zinc-500">Panel type "{componentType}" not found.</div>;
+        return <div className="flex items-center justify-center h-full text-muted-foreground">Panel type "{componentType}" not found.</div>;
     };
 
     const onAddPanel = (type: string) => {
         let parentId = 'root';
-        let location = DockLocation.CENTER;
-
-        // Try to add to the currently active tabset
-        const activeTabset = model.getActiveTabset();
-        if (activeTabset) {
-            parentId = activeTabset.getId();
-            location = DockLocation.CENTER; // Add as a new tab to existing set
-        } else {
-            // Fallback: try to find *any* tabset to append to
-            // We can iterate the model to find the first tabset, but root/center usually works if layout isn't empty.
-            // If layout is completely empty (no tabsets), we need to add to root.
-            // If we add to root, it creates a new tabset.
+        const location = DockLocation.CENTER;
+        const mainWorkspaceTabset = model.getFirstTabSet();
+        if (mainWorkspaceTabset) {
+            parentId = mainWorkspaceTabset.getId();
         }
 
         model.doAction(Actions.addNode({
             type: 'tab',
             component: type,
             name: type,
-            id: `${type}-${Date.now()}` // Ensure unique ID
+            id: `${type}-${nextPanelId.current++}`
         }, parentId, location, -1));
 
         setIsAddPanelOpen(false);
@@ -71,18 +63,18 @@ export const MainScreen: React.FC<MainScreenProps> = ({ onOpenSettings }) => {
     );
 
     return (
-        <div className="w-screen h-screen bg-black flex flex-col">
+        <div className="w-screen h-screen bg-background text-foreground flex flex-col">
             {/* Top Bar */}
-            <div className="h-12 bg-zinc-950 border-b border-zinc-800 flex items-center justify-between px-4 sticky top-0 z-50">
-                <div className="flex items-center gap-4">
-                    <span className="font-bold text-lg text-zinc-100">Magic Dashboard</span>
+            <div className="ui-topbar sticky top-0 z-50">
+                <div className="flex items-center gap-3">
+                    <span className="font-semibold text-lg tracking-tight">Adaptive Dashboard</span>
                 </div>
 
                 <div className="flex items-center gap-2">
                     {/* Add Panel Button & Dropdown */}
                     <div className="relative" ref={addPanelRef}>
                         <button
-                            className={`p-2 rounded-md transition-colors ${isAddPanelOpen ? 'bg-zinc-800 text-white' : 'text-zinc-400 hover:bg-zinc-800 hover:text-white'}`}
+                            className={`ui-icon-btn ${isAddPanelOpen ? 'ui-icon-btn-active' : ''}`}
                             onClick={() => setIsAddPanelOpen(!isAddPanelOpen)}
                             title="Add Panel"
                         >
@@ -90,14 +82,16 @@ export const MainScreen: React.FC<MainScreenProps> = ({ onOpenSettings }) => {
                         </button>
 
                         {isAddPanelOpen && (
-                            <div className="absolute right-0 top-full mt-2 w-64 bg-zinc-900 border border-zinc-800 rounded-lg shadow-xl z-50 flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-100">
+                            <div
+                                className="add-panel-menu ui-menu absolute right-0 top-full mt-2 w-64 z-50 flex flex-col animate-in fade-in zoom-in-95 duration-100"
+                            >
                                 {/* Search Bar */}
-                                <div className="p-3 border-b border-zinc-800 flex items-center gap-2">
-                                    <Search size={16} className="text-zinc-500" />
+                                <div className="p-3 border-b border-border flex items-center gap-2">
+                                    <Search size={16} className="text-muted-foreground" />
                                     <input
                                         type="text"
                                         placeholder="Search panels..."
-                                        className="bg-transparent border-none outline-none text-sm text-white w-full placeholder-zinc-600"
+                                        className="ui-input h-8 py-1 px-2 text-sm border-0 bg-transparent focus-visible:ring-0"
                                         value={searchQuery}
                                         onChange={(e) => setSearchQuery(e.target.value)}
                                         autoFocus
@@ -110,14 +104,14 @@ export const MainScreen: React.FC<MainScreenProps> = ({ onOpenSettings }) => {
                                         availablePanels.map(panelName => (
                                             <button
                                                 key={panelName}
-                                                className="w-full text-left px-4 py-2 text-sm text-zinc-300 hover:bg-zinc-800 hover:text-white transition-colors"
+                                                className="ui-menu-item"
                                                 onClick={() => onAddPanel(panelName)}
                                             >
                                                 {panelName}
                                             </button>
                                         ))
                                     ) : (
-                                        <div className="px-4 py-3 text-xs text-zinc-500 text-center">
+                                        <div className="px-4 py-3 text-xs text-muted-foreground text-center">
                                             No panels found
                                         </div>
                                     )}
@@ -128,7 +122,7 @@ export const MainScreen: React.FC<MainScreenProps> = ({ onOpenSettings }) => {
 
                     {/* Settings Button */}
                     <button
-                        className="p-2 text-zinc-400 hover:bg-zinc-800 hover:text-white rounded-md transition-colors"
+                        className="ui-icon-btn"
                         onClick={onOpenSettings}
                         title="Settings"
                     >
@@ -138,7 +132,7 @@ export const MainScreen: React.FC<MainScreenProps> = ({ onOpenSettings }) => {
             </div>
 
             {/* Workspace */}
-            <div className="flex-1 relative bg-zinc-950" style={{ padding: 'var(--gap)' }}>
+            <div className="flex-1 relative bg-background p-2">
                 <div className="w-full h-full relative">
                     <Layout
                         model={model}

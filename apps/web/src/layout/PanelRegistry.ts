@@ -1,4 +1,4 @@
-import { Model, TabNode } from 'flexlayout-react';
+import { TabNode } from 'flexlayout-react';
 import type { IJsonModel } from 'flexlayout-react';
 import React from 'react';
 
@@ -34,7 +34,6 @@ export const panelRegistry = new PanelRegistry();
 export const defaultLayout: IJsonModel = {
     global: {
         tabEnableClose: true,
-        tabEnableFloat: false,
         tabSetEnableMaximize: true,
         splitterSize: 8, // Matches var(--gap)
     },
@@ -45,23 +44,23 @@ export const defaultLayout: IJsonModel = {
         children: [
             {
                 type: 'tabset',
-                weight: 50,
+                weight: 60,
                 children: [
                     {
                         type: 'tab',
                         name: 'Welcome',
-                        component: 'WelcomePanel', // We will implement this
+                        component: 'WelcomePanel',
                     },
                 ],
             },
             {
                 type: 'tabset',
-                weight: 50,
+                weight: 40,
                 children: [
                     {
                         type: 'tab',
-                        name: 'Telemtry',
-                        component: 'TelemetryPanel',
+                        name: 'UI Reference',
+                        component: 'StyleGuidePanel',
                     },
                 ],
             },

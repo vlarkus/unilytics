@@ -8,7 +8,7 @@ function App() {
   const [currentView, setCurrentView] = useState<'main' | 'settings'>('main');
 
   return (
-    <div className="w-full h-full bg-zinc-950">
+    <div className="dark w-full h-full bg-background text-foreground">
       {currentView === 'main' ? (
         <MainScreen onOpenSettings={() => setCurrentView('settings')} />
       ) : (
