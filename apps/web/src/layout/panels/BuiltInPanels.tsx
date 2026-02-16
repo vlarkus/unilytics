@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import React from "react";
 import type { PanelProps } from "../PanelRegistry";
 
@@ -42,7 +43,7 @@ export const WelcomePanel: React.FC<PanelProps> = () => {
           <ol className="mt-3 space-y-2 text-sm text-muted-foreground text-left">
             <li>
               <strong>
-                1. Open the <em>Robot Connection</em> panel
+                1. Open the <em>Connection</em> panel
               </strong>{" "}
               and enter the robot IP address.
             </li>
@@ -52,11 +53,11 @@ export const WelcomePanel: React.FC<PanelProps> = () => {
             </li>
             <li>
               <strong>3. Choose a packet range</strong> in the{" "}
-              <em>Packet Selection</em> panel.
+              <em>Select Packets</em> panel.
             </li>
             <li>
               <strong>4. Open any analysis panels</strong> you find useful (for
-              example, <em>Telemetry Table</em>, <em>Rose Diagram</em>, or{" "}
+              example, <em>Data Table</em>, <em>Rose Diagram</em>, or{" "}
               <em>Pie Chart</em>).
             </li>
           </ol>

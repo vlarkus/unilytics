@@ -9,10 +9,10 @@ import {
   PACKET_NUMBER_KEY,
 } from "./numeric-variable-utils";
 
-export const twoDGraphPanelTags = ["chart", "2d", "graph", "visualization", "analysis"];
+export const heatmapPanelTags = ["chart", "heatmap", "grid", "analysis"];
 
 type ScaleMode = "auto" | "manual";
-type FullScreenFitMode = "fill" | "square";
+type ValueMode = "count" | "percent";
 
 const sanitizeSignedDecimalInput = (value: string) => {
   const hasLeadingMinus = value.trimStart().startsWith("-");
@@ -22,12 +22,14 @@ const sanitizeSignedDecimalInput = (value: string) => {
   return hasLeadingMinus ? `-${normalized}` : normalized;
 };
 
+const sanitizeIntegerInput = (value: string) => value.replace(/\D/g, "");
+
 const parseNumber = (value: string, fallback: number) => {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : fallback;
 };
 
-export const TwoDGraphPanel: React.FC<PanelProps> = () => {
+export const HeatmapPanel: React.FC<PanelProps> = () => {
   const { telemetryColumns, telemetryRows, packetSelection } = useRobotTelemetry();
   const variableOptions = useMemo(
     () => getNumericVariableOptions(telemetryColumns),
@@ -36,15 +38,16 @@ export const TwoDGraphPanel: React.FC<PanelProps> = () => {
 
   const [xVariable, setXVariable] = useState(PACKET_NUMBER_KEY);
   const [yVariable, setYVariable] = useState(telemetryColumns[0] ?? PACKET_NUMBER_KEY);
+  const [xBinsInput, setXBinsInput] = useState("12");
+  const [yBinsInput, setYBinsInput] = useState("12");
   const [xScaleMode, setXScaleMode] = useState<ScaleMode>("auto");
   const [yScaleMode, setYScaleMode] = useState<ScaleMode>("auto");
-  const [xMinInput, setXMinInput] = useState("-72");
-  const [xMaxInput, setXMaxInput] = useState("72");
-  const [yMinInput, setYMinInput] = useState("-72");
-  const [yMaxInput, setYMaxInput] = useState("72");
+  const [xMinInput, setXMinInput] = useState("-100");
+  const [xMaxInput, setXMaxInput] = useState("100");
+  const [yMinInput, setYMinInput] = useState("-100");
+  const [yMaxInput, setYMaxInput] = useState("100");
+  const [valueMode, setValueMode] = useState<ValueMode>("count");
   const [isFullScale, setIsFullScale] = useState(false);
-  const [displayMode, setDisplayMode] = useState<"separate" | "lines">("separate");
-  const [fullScreenFitMode, setFullScreenFitMode] = useState<FullScreenFitMode>("fill");
 
   useEffect(() => {
     if (!variableOptions.some((option) => option.value === xVariable)) {
@@ -77,10 +80,13 @@ export const TwoDGraphPanel: React.FC<PanelProps> = () => {
     [selectedEntries, xVariable, yVariable],
   );
 
-  const autoXMin = points.length > 0 ? Math.min(...points.map((point) => point.x)) : -72;
-  const autoXMax = points.length > 0 ? Math.max(...points.map((point) => point.x)) : 72;
-  const autoYMin = points.length > 0 ? Math.min(...points.map((point) => point.y)) : -72;
-  const autoYMax = points.length > 0 ? Math.max(...points.map((point) => point.y)) : 72;
+  const xBins = Math.min(60, Math.max(1, Math.round(parseNumber(xBinsInput, 12))));
+  const yBins = Math.min(60, Math.max(1, Math.round(parseNumber(yBinsInput, 12))));
+
+  const autoXMin = points.length > 0 ? Math.min(...points.map((point) => point.x)) : -100;
+  const autoXMax = points.length > 0 ? Math.max(...points.map((point) => point.x)) : 100;
+  const autoYMin = points.length > 0 ? Math.min(...points.map((point) => point.y)) : -100;
+  const autoYMax = points.length > 0 ? Math.max(...points.map((point) => point.y)) : 100;
 
   const manualXMin = parseNumber(xMinInput, autoXMin);
   const manualXMax = parseNumber(xMaxInput, autoXMax);
@@ -94,26 +100,45 @@ export const TwoDGraphPanel: React.FC<PanelProps> = () => {
   const xSpan = Math.max(xHigh - xLow, Number.EPSILON);
   const ySpan = Math.max(yHigh - yLow, Number.EPSILON);
 
-  const visiblePoints = useMemo(
-    () =>
-      points.filter(
-        (point) =>
-          point.x >= xLow && point.x <= xHigh && point.y >= yLow && point.y <= yHigh,
-      ),
-    [points, xHigh, xLow, yHigh, yLow],
-  );
+  const heatmap = useMemo(() => {
+    const counts = Array.from({ length: yBins }, () =>
+      Array.from({ length: xBins }, () => 0),
+    );
 
-  const chartSize = 620;
-  const padding = 58;
-  const plotSize = chartSize - padding * 2;
-  const toSvgX = (x: number) => padding + ((x - xLow) / xSpan) * plotSize;
-  const toSvgY = (y: number) => chartSize - padding - ((y - yLow) / ySpan) * plotSize;
+    const inRangePoints = points.filter(
+      (point) =>
+        point.x >= xLow && point.x <= xHigh && point.y >= yLow && point.y <= yHigh,
+    );
+
+    inRangePoints.forEach((point) => {
+      const xRatio = (point.x - xLow) / xSpan;
+      const yRatio = (point.y - yLow) / ySpan;
+      const xIndex = Math.min(xBins - 1, Math.max(0, Math.floor(xRatio * xBins)));
+      const yIndex = Math.min(yBins - 1, Math.max(0, Math.floor(yRatio * yBins)));
+      counts[yIndex][xIndex] += 1;
+    });
+
+    const maxCount = Math.max(...counts.flat(), 1);
+
+    return {
+      counts,
+      maxCount,
+      inRangeCount: inRangePoints.length,
+      totalCount: points.length,
+    };
+  }, [points, xBins, yBins, xHigh, xLow, xSpan, yHigh, yLow, ySpan]);
 
   const xLabel =
     variableOptions.find((option) => option.value === xVariable)?.label ?? xVariable;
   const yLabel =
     variableOptions.find((option) => option.value === yVariable)?.label ?? yVariable;
-  const isStretchFill = isFullScale && fullScreenFitMode === "fill";
+
+  const chartSize = 700;
+  const padding = 62;
+  const plotWidth = chartSize - padding * 2;
+  const plotHeight = chartSize - padding * 2;
+  const cellWidth = plotWidth / xBins;
+  const cellHeight = plotHeight / yBins;
 
   const chartCard = (
     <section
@@ -134,19 +159,15 @@ export const TwoDGraphPanel: React.FC<PanelProps> = () => {
         <i className={`fa-solid ${isFullScale ? "fa-compress" : "fa-expand"}`} aria-hidden="true" />
       </button>
 
-      {visiblePoints.length === 0 ? (
+      {heatmap.totalCount === 0 ? (
         <div className="rounded-md border border-border bg-card p-4 text-sm text-muted-foreground">
-          No points in the selected X/Y ranges for the current packet window.
+          No numeric values available for heatmap plotting.
         </div>
       ) : (
-        <div className={isFullScale ? "h-full w-full relative" : "w-full relative"}>
+        <div className={isFullScale ? "h-full w-full" : "w-full"}>
           <svg
             viewBox={`0 0 ${chartSize} ${chartSize}`}
-            preserveAspectRatio={
-              isFullScale && fullScreenFitMode === "fill"
-                ? "none"
-                : "xMidYMid meet"
-            }
+            preserveAspectRatio="xMidYMid meet"
             className={
               isFullScale
                 ? "block h-full w-full bg-transparent"
@@ -156,89 +177,67 @@ export const TwoDGraphPanel: React.FC<PanelProps> = () => {
             <rect
               x={padding}
               y={padding}
-              width={plotSize}
-              height={plotSize}
+              width={plotWidth}
+              height={plotHeight}
               fill="transparent"
               stroke="hsl(var(--foreground) / 0.35)"
               strokeWidth="1"
             />
-            <line
-              x1={padding}
-              y1={chartSize - padding}
-              x2={chartSize - padding}
-              y2={chartSize - padding}
-              stroke="hsl(var(--foreground) / 0.65)"
-              strokeWidth="1"
-            />
-            <line
-              x1={padding}
-              y1={padding}
-              x2={padding}
-              y2={chartSize - padding}
-              stroke="hsl(var(--foreground) / 0.65)"
-              strokeWidth="1"
-            />
+            {heatmap.counts.map((row, rowIndex) =>
+              row.map((count, columnIndex) => {
+                const value =
+                  valueMode === "percent" && heatmap.inRangeCount > 0
+                    ? (count / heatmap.inRangeCount) * 100
+                    : count;
+                const maxValue = valueMode === "percent" ? 100 : heatmap.maxCount;
+                const intensity = value / Math.max(maxValue, Number.EPSILON);
 
-            {visiblePoints.map((point, index) => (
-              <circle
-                key={`${point.x}-${point.y}-${index}`}
-                cx={toSvgX(point.x)}
-                cy={toSvgY(point.y)}
-                r={2.8}
-                fill="hsl(var(--primary))"
-              >
-                <title>{`X: ${point.x.toFixed(4)}, Y: ${point.y.toFixed(4)}`}</title>
-              </circle>
-            ))}
+                return (
+                  <rect
+                    key={`heat-${rowIndex}-${columnIndex}`}
+                    x={padding + columnIndex * cellWidth}
+                    y={padding + (yBins - rowIndex - 1) * cellHeight}
+                    width={Math.max(0, cellWidth)}
+                    height={Math.max(0, cellHeight)}
+                    fill={`hsl(var(--primary) / ${Math.max(0.06, intensity)})`}
+                    stroke="hsl(var(--background) / 0.4)"
+                    strokeWidth="0.35"
+                  >
+                    <title>
+                      {valueMode === "percent"
+                        ? `${count} points (${value.toFixed(2)}%)`
+                        : `${count} points`}
+                    </title>
+                  </rect>
+                );
+              }),
+            )}
 
-            {displayMode === "lines" && visiblePoints.length > 1 ? (
-              <polyline
-                points={visiblePoints
-                  .map((point) => `${toSvgX(point.x)},${toSvgY(point.y)}`)
-                  .join(" ")}
-                fill="none"
-                stroke="hsl(var(--primary))"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <title>{`${visiblePoints.length} points connected`}</title>
-              </polyline>
-            ) : null}
-
-            {!isStretchFill ? (
-              <>
-                <text
-                  x={chartSize / 2}
-                  y={chartSize - 18}
-                  textAnchor="middle"
-                  fill="hsl(var(--foreground))"
-                  fontSize="12"
-                >
-                  {xLabel}
-                </text>
-                <text
-                  x={20}
-                  y={chartSize / 2}
-                  textAnchor="middle"
-                  fill="hsl(var(--foreground))"
-                  fontSize="12"
-                  transform={`rotate(-90 20 ${chartSize / 2})`}
-                >
-                  {yLabel}
-                </text>
-              </>
-            ) : null}
+            <text
+              x={chartSize / 2}
+              y={chartSize - 18}
+              textAnchor="middle"
+              fill="hsl(var(--foreground))"
+              fontSize="12"
+            >
+              {xLabel}
+            </text>
+            <text
+              x={20}
+              y={chartSize / 2}
+              textAnchor="middle"
+              fill="hsl(var(--foreground))"
+              fontSize="12"
+              transform={`rotate(-90 20 ${chartSize / 2})`}
+            >
+              {yLabel}
+            </text>
           </svg>
-          {isStretchFill ? (
-            <>
-              <div className="pointer-events-none absolute bottom-2 left-0 right-0 text-center text-xs text-foreground">
-                {xLabel}
-              </div>
-              <div className="pointer-events-none absolute left-2 top-2 text-xs text-foreground">
-                Y: {yLabel}
-              </div>
-            </>
+
+          {!isFullScale ? (
+            <div className="mt-3 text-xs text-muted-foreground">
+              In range: {heatmap.inRangeCount}/{heatmap.totalCount} | Grid: {xBins} x {yBins}
+            </div>
           ) : null}
         </div>
       )}
@@ -251,9 +250,9 @@ export const TwoDGraphPanel: React.FC<PanelProps> = () => {
         {!isFullScale ? (
           <>
             <header className="panel-header">
-              <h1 className="panel-title">2D Graph</h1>
+              <h1 className="panel-title">Heatmap</h1>
               <p className="panel-subtitle">
-                Plot one numeric variable against another for the selected packet window.
+                Density map for two variables with configurable box divisions.
               </p>
             </header>
 
@@ -263,34 +262,34 @@ export const TwoDGraphPanel: React.FC<PanelProps> = () => {
               <div className="grid gap-3">
                 <div className="grid gap-3 md:grid-cols-2">
                   <div>
-                    <label className="ui-label" htmlFor="graph-x-variable">
+                    <label className="ui-label" htmlFor="heatmap-x-variable">
                       X Variable
                     </label>
                     <select
-                      id="graph-x-variable"
+                      id="heatmap-x-variable"
                       className="ui-input"
                       value={xVariable}
                       onChange={(event) => setXVariable(event.target.value)}
                     >
                       {variableOptions.map((option) => (
-                        <option key={`x-${option.value}`} value={option.value}>
+                        <option key={`hx-${option.value}`} value={option.value}>
                           {option.label}
                         </option>
                       ))}
                     </select>
                   </div>
                   <div>
-                    <label className="ui-label" htmlFor="graph-y-variable">
+                    <label className="ui-label" htmlFor="heatmap-y-variable">
                       Y Variable
                     </label>
                     <select
-                      id="graph-y-variable"
+                      id="heatmap-y-variable"
                       className="ui-input"
                       value={yVariable}
                       onChange={(event) => setYVariable(event.target.value)}
                     >
                       {variableOptions.map((option) => (
-                        <option key={`y-${option.value}`} value={option.value}>
+                        <option key={`hy-${option.value}`} value={option.value}>
                           {option.label}
                         </option>
                       ))}
@@ -300,11 +299,57 @@ export const TwoDGraphPanel: React.FC<PanelProps> = () => {
 
                 <div className="grid gap-3 md:grid-cols-2">
                   <div>
-                    <label className="ui-label" htmlFor="graph-x-scale-mode">
+                    <label className="ui-label" htmlFor="heatmap-x-bins">
+                      X Boxes
+                    </label>
+                    <input
+                      id="heatmap-x-bins"
+                      type="text"
+                      inputMode="numeric"
+                      className="ui-input"
+                      value={xBinsInput}
+                      onChange={(event) => setXBinsInput(sanitizeIntegerInput(event.target.value))}
+                      onBlur={() => setXBinsInput(String(xBins))}
+                    />
+                  </div>
+                  <div>
+                    <label className="ui-label" htmlFor="heatmap-y-bins">
+                      Y Boxes
+                    </label>
+                    <input
+                      id="heatmap-y-bins"
+                      type="text"
+                      inputMode="numeric"
+                      className="ui-input"
+                      value={yBinsInput}
+                      onChange={(event) => setYBinsInput(sanitizeIntegerInput(event.target.value))}
+                      onBlur={() => setYBinsInput(String(yBins))}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="ui-label" htmlFor="heatmap-value-mode">
+                    Cell Value
+                  </label>
+                  <select
+                    id="heatmap-value-mode"
+                    className="ui-input"
+                    value={valueMode}
+                    onChange={(event) => setValueMode(event.target.value as ValueMode)}
+                  >
+                    <option value="count">Count</option>
+                    <option value="percent">Percent</option>
+                  </select>
+                </div>
+
+                <div className="grid gap-3 md:grid-cols-2">
+                  <div>
+                    <label className="ui-label" htmlFor="heatmap-x-scale">
                       X Scale
                     </label>
                     <select
-                      id="graph-x-scale-mode"
+                      id="heatmap-x-scale"
                       className="ui-input"
                       value={xScaleMode}
                       onChange={(event) => setXScaleMode(event.target.value as ScaleMode)}
@@ -314,11 +359,11 @@ export const TwoDGraphPanel: React.FC<PanelProps> = () => {
                     </select>
                   </div>
                   <div>
-                    <label className="ui-label" htmlFor="graph-y-scale-mode">
+                    <label className="ui-label" htmlFor="heatmap-y-scale">
                       Y Scale
                     </label>
                     <select
-                      id="graph-y-scale-mode"
+                      id="heatmap-y-scale"
                       className="ui-input"
                       value={yScaleMode}
                       onChange={(event) => setYScaleMode(event.target.value as ScaleMode)}
@@ -332,11 +377,11 @@ export const TwoDGraphPanel: React.FC<PanelProps> = () => {
                 {xScaleMode === "manual" ? (
                   <div className="grid gap-3 md:grid-cols-2">
                     <div>
-                      <label className="ui-label" htmlFor="graph-x-min">
+                      <label className="ui-label" htmlFor="heatmap-x-min">
                         X Min
                       </label>
                       <input
-                        id="graph-x-min"
+                        id="heatmap-x-min"
                         className="ui-input"
                         type="text"
                         inputMode="decimal"
@@ -347,11 +392,11 @@ export const TwoDGraphPanel: React.FC<PanelProps> = () => {
                       />
                     </div>
                     <div>
-                      <label className="ui-label" htmlFor="graph-x-max">
+                      <label className="ui-label" htmlFor="heatmap-x-max">
                         X Max
                       </label>
                       <input
-                        id="graph-x-max"
+                        id="heatmap-x-max"
                         className="ui-input"
                         type="text"
                         inputMode="decimal"
@@ -367,11 +412,11 @@ export const TwoDGraphPanel: React.FC<PanelProps> = () => {
                 {yScaleMode === "manual" ? (
                   <div className="grid gap-3 md:grid-cols-2">
                     <div>
-                      <label className="ui-label" htmlFor="graph-y-min">
+                      <label className="ui-label" htmlFor="heatmap-y-min">
                         Y Min
                       </label>
                       <input
-                        id="graph-y-min"
+                        id="heatmap-y-min"
                         className="ui-input"
                         type="text"
                         inputMode="decimal"
@@ -382,11 +427,11 @@ export const TwoDGraphPanel: React.FC<PanelProps> = () => {
                       />
                     </div>
                     <div>
-                      <label className="ui-label" htmlFor="graph-y-max">
+                      <label className="ui-label" htmlFor="heatmap-y-max">
                         Y Max
                       </label>
                       <input
-                        id="graph-y-max"
+                        id="heatmap-y-max"
                         className="ui-input"
                         type="text"
                         inputMode="decimal"
@@ -398,40 +443,6 @@ export const TwoDGraphPanel: React.FC<PanelProps> = () => {
                     </div>
                   </div>
                 ) : null}
-
-                <div>
-                  <label className="ui-label" htmlFor="graph-display-mode">
-                    Render Mode
-                  </label>
-                  <select
-                    id="graph-display-mode"
-                    className="ui-input"
-                    value={displayMode}
-                    onChange={(event) =>
-                      setDisplayMode(event.target.value as "separate" | "lines")
-                    }
-                  >
-                    <option value="separate">Keep Dots Separate</option>
-                    <option value="lines">Connect Neighboring Dots</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="ui-label" htmlFor="graph-fullscreen-fit">
-                    Full-Screen Fit
-                  </label>
-                  <select
-                    id="graph-fullscreen-fit"
-                    className="ui-input"
-                    value={fullScreenFitMode}
-                    onChange={(event) =>
-                      setFullScreenFitMode(event.target.value as FullScreenFitMode)
-                    }
-                  >
-                    <option value="fill">Fill Available Space</option>
-                    <option value="square">Keep Square</option>
-                  </select>
-                </div>
               </div>
             </section>
           </>

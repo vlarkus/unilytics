@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import React, { useEffect, useState } from "react";
 import type { PanelProps } from "../PanelRegistry";
 import { robotTelemetryManager } from "../robot-telemetry-manager";
@@ -73,7 +74,7 @@ export const PacketSelectionPanel: React.FC<PanelProps> = () => {
     <div className="panel-content">
       <div className="panel-shell">
         <header className="panel-header">
-          <h1 className="panel-title">Packet Selection</h1>
+          <h1 className="panel-title">Select Packets</h1>
           <p className="panel-subtitle">
             Select active packets by packet number (ordered by telemetry time).
           </p>

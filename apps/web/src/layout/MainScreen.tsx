@@ -11,7 +11,6 @@ import "flexlayout-react/style/light.css";
 import { panelRegistry, defaultLayout } from "./PanelRegistry";
 import { robotTelemetryManager } from "./robot-telemetry-manager";
 import { WelcomePanel, welcomePanelTags } from "./panels/BuiltInPanels";
-import { StyleGuidePanel, styleGuidePanelTags } from "./panels/StyleGuidePanel";
 import {
   RobotConnectionPanel,
   robotConnectionPanelTags,
@@ -30,6 +29,11 @@ import {
 } from "./panels/RoseDiagramPanel";
 import { PieChartPanel, pieChartPanelTags } from "./panels/PieChartPanel";
 import { TwoDGraphPanel, twoDGraphPanelTags } from "./panels/TwoDGraphPanel";
+import { HistogramPanel, histogramPanelTags } from "./panels/HistogramPanel";
+import { LineGraphPanel, lineGraphPanelTags } from "./panels/LineGraphPanel";
+import { HeatmapPanel, heatmapPanelTags } from "./panels/HeatmapPanel";
+import { BoxPlotPanel, boxPlotPanelTags } from "./panels/BoxPlotPanel";
+import { ViolinPlotPanel, violinPlotPanelTags } from "./panels/ViolinPlotPanel";
 
 // Register built-in panels
 panelRegistry.register(
@@ -39,27 +43,21 @@ panelRegistry.register(
   welcomePanelTags,
 );
 panelRegistry.register(
-  "StyleGuidePanel",
-  StyleGuidePanel,
-  "UI Reference",
-  styleGuidePanelTags,
-);
-panelRegistry.register(
   "RobotConnectionPanel",
   RobotConnectionPanel,
-  "Robot Connection",
+  "Connection",
   robotConnectionPanelTags,
 );
 panelRegistry.register(
   "TelemetryTablePanel",
   TelemetryTablePanel,
-  "Telemetry Table",
+  "Data Table",
   telemetryTablePanelTags,
 );
 panelRegistry.register(
   "PacketSelectionPanel",
   PacketSelectionPanel,
-  "Packet Selection",
+  "Select Packets",
   packetSelectionPanelTags,
 );
 panelRegistry.register(
@@ -79,6 +77,36 @@ panelRegistry.register(
   TwoDGraphPanel,
   "2D Graph",
   twoDGraphPanelTags,
+);
+panelRegistry.register(
+  "HistogramPanel",
+  HistogramPanel,
+  "Histogram",
+  histogramPanelTags,
+);
+panelRegistry.register(
+  "LineGraphPanel",
+  LineGraphPanel,
+  "Line Graph",
+  lineGraphPanelTags,
+);
+panelRegistry.register(
+  "HeatmapPanel",
+  HeatmapPanel,
+  "Heatmap",
+  heatmapPanelTags,
+);
+panelRegistry.register(
+  "BoxPlotPanel",
+  BoxPlotPanel,
+  "Box Plot",
+  boxPlotPanelTags,
+);
+panelRegistry.register(
+  "ViolinPlotPanel",
+  ViolinPlotPanel,
+  "Violin Plot",
+  violinPlotPanelTags,
 );
 
 export const MainScreen: React.FC = () => {
@@ -221,7 +249,7 @@ export const MainScreen: React.FC = () => {
   };
 
   return (
-    <div className="w-screen h-screen bg-background text-foreground flex flex-col">
+    <div className="w-full h-full min-h-0 overflow-hidden bg-background text-foreground flex flex-col">
       {/* Top Bar */}
       <div className="ui-topbar sticky top-0 z-50">
         <div className="flex items-center gap-3">
@@ -309,8 +337,8 @@ export const MainScreen: React.FC = () => {
       </div>
 
       {/* Workspace */}
-      <div className="flex-1 relative bg-background p-2">
-        <div className="w-full h-full relative">
+      <div className="flex-1 min-h-0 relative bg-background p-2">
+        <div className="w-full h-full min-h-0 relative">
           <Layout
             model={model}
             factory={factory}

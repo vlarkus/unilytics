@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import React from "react";
 import type { PanelProps } from "../PanelRegistry";
 import { robotTelemetryManager } from "../robot-telemetry-manager";
@@ -6,7 +7,7 @@ import { useRobotTelemetry } from "../use-robot-telemetry";
 export const robotConnectionPanelTags = ["network", "robot", "connection", "io"];
 
 export const RobotConnectionPanel: React.FC<PanelProps> = () => {
-  const { connectionStatus, ipAddress, streamPaused } = useRobotTelemetry();
+  const { connectionStatus, ipAddress, streamPaused, connectionMessage } = useRobotTelemetry();
 
   const isConnecting = connectionStatus === "connecting";
   const isConnected = connectionStatus === "connected";
@@ -23,6 +24,11 @@ export const RobotConnectionPanel: React.FC<PanelProps> = () => {
     : isConnecting
       ? "hsl(var(--warning) / 0.15)"
       : "hsl(var(--error) / 0.15)";
+  const messageColor = isConnected
+    ? "text-[hsl(var(--success))]"
+    : isConnecting
+      ? "text-[hsl(var(--warning))]"
+      : "text-[hsl(var(--error))]";
 
   return (
     <div className="panel-content">
@@ -31,7 +37,7 @@ export const RobotConnectionPanel: React.FC<PanelProps> = () => {
           <input
             id="robot-ip"
             className="ui-input flex-1 max-w-30 min-w-30"
-            inputMode="decimal"
+            inputMode="text"
             autoComplete="off"
             placeholder="192.168.43.1"
             value={ipAddress}
@@ -115,6 +121,14 @@ export const RobotConnectionPanel: React.FC<PanelProps> = () => {
             </button>
           ) : null}
         </div>
+        <p className="mt-2 text-xs text-muted-foreground">
+          Tip: type <code>demo</code> to run the built-in telemetry demo.
+        </p>
+        {connectionMessage ? (
+          <p className={`mt-1 text-xs ${messageColor}`} aria-live="polite">
+            {connectionMessage}
+          </p>
+        ) : null}
       </div>
     </div>
   );

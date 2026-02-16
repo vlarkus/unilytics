@@ -7,11 +7,13 @@ import {
   getNumericVariableValue,
   getSelectedRowEntries,
   PACKET_NUMBER_KEY,
+  TIMESTAMP_KEY,
 } from "./numeric-variable-utils";
 
-export const twoDGraphPanelTags = ["chart", "2d", "graph", "visualization", "analysis"];
+export const lineGraphPanelTags = ["chart", "line", "timeseries", "analysis"];
 
 type ScaleMode = "auto" | "manual";
+type XAxisMode = typeof PACKET_NUMBER_KEY | typeof TIMESTAMP_KEY;
 type FullScreenFitMode = "fill" | "square";
 
 const sanitizeSignedDecimalInput = (value: string) => {
@@ -27,37 +29,29 @@ const parseNumber = (value: string, fallback: number) => {
   return Number.isFinite(parsed) ? parsed : fallback;
 };
 
-export const TwoDGraphPanel: React.FC<PanelProps> = () => {
+export const LineGraphPanel: React.FC<PanelProps> = () => {
   const { telemetryColumns, telemetryRows, packetSelection } = useRobotTelemetry();
   const variableOptions = useMemo(
     () => getNumericVariableOptions(telemetryColumns),
     [telemetryColumns],
   );
 
-  const [xVariable, setXVariable] = useState(PACKET_NUMBER_KEY);
+  const [xAxisMode, setXAxisMode] = useState<XAxisMode>(TIMESTAMP_KEY);
   const [yVariable, setYVariable] = useState(telemetryColumns[0] ?? PACKET_NUMBER_KEY);
-  const [xScaleMode, setXScaleMode] = useState<ScaleMode>("auto");
   const [yScaleMode, setYScaleMode] = useState<ScaleMode>("auto");
-  const [xMinInput, setXMinInput] = useState("-72");
-  const [xMaxInput, setXMaxInput] = useState("72");
-  const [yMinInput, setYMinInput] = useState("-72");
-  const [yMaxInput, setYMaxInput] = useState("72");
+  const [yMinInput, setYMinInput] = useState("-100");
+  const [yMaxInput, setYMaxInput] = useState("100");
+  const [showPoints, setShowPoints] = useState(true);
   const [isFullScale, setIsFullScale] = useState(false);
-  const [displayMode, setDisplayMode] = useState<"separate" | "lines">("separate");
   const [fullScreenFitMode, setFullScreenFitMode] = useState<FullScreenFitMode>("fill");
 
   useEffect(() => {
-    if (!variableOptions.some((option) => option.value === xVariable)) {
-      queueMicrotask(() =>
-        setXVariable(variableOptions[0]?.value ?? PACKET_NUMBER_KEY),
-      );
-    }
     if (!variableOptions.some((option) => option.value === yVariable)) {
       queueMicrotask(() =>
         setYVariable(variableOptions[0]?.value ?? PACKET_NUMBER_KEY),
       );
     }
-  }, [variableOptions, xVariable, yVariable]);
+  }, [variableOptions, yVariable]);
 
   const selectedEntries = useMemo(
     () => getSelectedRowEntries(telemetryRows, packetSelection),
@@ -68,51 +62,41 @@ export const TwoDGraphPanel: React.FC<PanelProps> = () => {
     () =>
       selectedEntries
         .map((entry) => {
-          const x = getNumericVariableValue(entry, xVariable);
+          const x = xAxisMode === TIMESTAMP_KEY ? entry.row.timestamp : entry.packetNumber;
           const y = getNumericVariableValue(entry, yVariable);
-          if (x === null || y === null) return null;
+          if (y === null) return null;
           return { x, y };
         })
         .filter((point): point is { x: number; y: number } => point !== null),
-    [selectedEntries, xVariable, yVariable],
+    [selectedEntries, xAxisMode, yVariable],
   );
 
-  const autoXMin = points.length > 0 ? Math.min(...points.map((point) => point.x)) : -72;
-  const autoXMax = points.length > 0 ? Math.max(...points.map((point) => point.x)) : 72;
-  const autoYMin = points.length > 0 ? Math.min(...points.map((point) => point.y)) : -72;
-  const autoYMax = points.length > 0 ? Math.max(...points.map((point) => point.y)) : 72;
-
-  const manualXMin = parseNumber(xMinInput, autoXMin);
-  const manualXMax = parseNumber(xMaxInput, autoXMax);
-  const manualYMin = parseNumber(yMinInput, autoYMin);
-  const manualYMax = parseNumber(yMaxInput, autoYMax);
-
-  const xLow = xScaleMode === "auto" ? autoXMin : Math.min(manualXMin, manualXMax);
-  const xHigh = xScaleMode === "auto" ? autoXMax : Math.max(manualXMin, manualXMax);
-  const yLow = yScaleMode === "auto" ? autoYMin : Math.min(manualYMin, manualYMax);
-  const yHigh = yScaleMode === "auto" ? autoYMax : Math.max(manualYMin, manualYMax);
-  const xSpan = Math.max(xHigh - xLow, Number.EPSILON);
-  const ySpan = Math.max(yHigh - yLow, Number.EPSILON);
+  const xMin = points.length > 0 ? Math.min(...points.map((point) => point.x)) : 0;
+  const xMax = points.length > 0 ? Math.max(...points.map((point) => point.x)) : 1;
+  const yAutoMin = points.length > 0 ? Math.min(...points.map((point) => point.y)) : -100;
+  const yAutoMax = points.length > 0 ? Math.max(...points.map((point) => point.y)) : 100;
+  const yManualMin = parseNumber(yMinInput, yAutoMin);
+  const yManualMax = parseNumber(yMaxInput, yAutoMax);
+  const yMin = yScaleMode === "auto" ? yAutoMin : Math.min(yManualMin, yManualMax);
+  const yMax = yScaleMode === "auto" ? yAutoMax : Math.max(yManualMin, yManualMax);
+  const xSpan = Math.max(xMax - xMin, Number.EPSILON);
+  const ySpan = Math.max(yMax - yMin, Number.EPSILON);
 
   const visiblePoints = useMemo(
-    () =>
-      points.filter(
-        (point) =>
-          point.x >= xLow && point.x <= xHigh && point.y >= yLow && point.y <= yHigh,
-      ),
-    [points, xHigh, xLow, yHigh, yLow],
+    () => points.filter((point) => point.y >= yMin && point.y <= yMax),
+    [points, yMax, yMin],
   );
 
-  const chartSize = 620;
-  const padding = 58;
-  const plotSize = chartSize - padding * 2;
-  const toSvgX = (x: number) => padding + ((x - xLow) / xSpan) * plotSize;
-  const toSvgY = (y: number) => chartSize - padding - ((y - yLow) / ySpan) * plotSize;
+  const chartSize = 700;
+  const padding = 62;
+  const plotWidth = chartSize - padding * 2;
+  const plotHeight = chartSize - padding * 2;
 
-  const xLabel =
-    variableOptions.find((option) => option.value === xVariable)?.label ?? xVariable;
-  const yLabel =
-    variableOptions.find((option) => option.value === yVariable)?.label ?? yVariable;
+  const toSvgX = (x: number) => padding + ((x - xMin) / xSpan) * plotWidth;
+  const toSvgY = (y: number) => chartSize - padding - ((y - yMin) / ySpan) * plotHeight;
+
+  const xLabel = xAxisMode === TIMESTAMP_KEY ? "Timestamp (ms)" : "Packet Number";
+  const yLabel = variableOptions.find((option) => option.value === yVariable)?.label ?? yVariable;
   const isStretchFill = isFullScale && fullScreenFitMode === "fill";
 
   const chartCard = (
@@ -136,7 +120,7 @@ export const TwoDGraphPanel: React.FC<PanelProps> = () => {
 
       {visiblePoints.length === 0 ? (
         <div className="rounded-md border border-border bg-card p-4 text-sm text-muted-foreground">
-          No points in the selected X/Y ranges for the current packet window.
+          No numeric values available for the selected variable/range.
         </div>
       ) : (
         <div className={isFullScale ? "h-full w-full relative" : "w-full relative"}>
@@ -156,8 +140,8 @@ export const TwoDGraphPanel: React.FC<PanelProps> = () => {
             <rect
               x={padding}
               y={padding}
-              width={plotSize}
-              height={plotSize}
+              width={plotWidth}
+              height={plotHeight}
               fill="transparent"
               stroke="hsl(var(--foreground) / 0.35)"
               strokeWidth="1"
@@ -179,32 +163,34 @@ export const TwoDGraphPanel: React.FC<PanelProps> = () => {
               strokeWidth="1"
             />
 
-            {visiblePoints.map((point, index) => (
-              <circle
-                key={`${point.x}-${point.y}-${index}`}
-                cx={toSvgX(point.x)}
-                cy={toSvgY(point.y)}
-                r={2.8}
-                fill="hsl(var(--primary))"
-              >
-                <title>{`X: ${point.x.toFixed(4)}, Y: ${point.y.toFixed(4)}`}</title>
-              </circle>
-            ))}
-
-            {displayMode === "lines" && visiblePoints.length > 1 ? (
+            {visiblePoints.length > 1 ? (
               <polyline
                 points={visiblePoints
                   .map((point) => `${toSvgX(point.x)},${toSvgY(point.y)}`)
                   .join(" ")}
                 fill="none"
                 stroke="hsl(var(--primary))"
-                strokeWidth="1.5"
+                strokeWidth="2"
                 strokeLinecap="round"
                 strokeLinejoin="round"
               >
                 <title>{`${visiblePoints.length} points connected`}</title>
               </polyline>
             ) : null}
+
+            {showPoints
+              ? visiblePoints.map((point, index) => (
+                  <circle
+                    key={`${point.x}-${point.y}-${index}`}
+                    cx={toSvgX(point.x)}
+                    cy={toSvgY(point.y)}
+                    r={2.4}
+                    fill="hsl(var(--primary))"
+                  >
+                    <title>{`X: ${point.x.toFixed(4)}, Y: ${point.y.toFixed(4)}`}</title>
+                  </circle>
+                ))
+              : null}
 
             {!isStretchFill ? (
               <>
@@ -251,9 +237,9 @@ export const TwoDGraphPanel: React.FC<PanelProps> = () => {
         {!isFullScale ? (
           <>
             <header className="panel-header">
-              <h1 className="panel-title">2D Graph</h1>
+              <h1 className="panel-title">Line Graph</h1>
               <p className="panel-subtitle">
-                Plot one numeric variable against another for the selected packet window.
+                Plot one variable over packet number or timestamp.
               </p>
             </header>
 
@@ -263,34 +249,31 @@ export const TwoDGraphPanel: React.FC<PanelProps> = () => {
               <div className="grid gap-3">
                 <div className="grid gap-3 md:grid-cols-2">
                   <div>
-                    <label className="ui-label" htmlFor="graph-x-variable">
-                      X Variable
+                    <label className="ui-label" htmlFor="line-x-mode">
+                      X Axis
                     </label>
                     <select
-                      id="graph-x-variable"
+                      id="line-x-mode"
                       className="ui-input"
-                      value={xVariable}
-                      onChange={(event) => setXVariable(event.target.value)}
+                      value={xAxisMode}
+                      onChange={(event) => setXAxisMode(event.target.value as XAxisMode)}
                     >
-                      {variableOptions.map((option) => (
-                        <option key={`x-${option.value}`} value={option.value}>
-                          {option.label}
-                        </option>
-                      ))}
+                      <option value={TIMESTAMP_KEY}>Timestamp</option>
+                      <option value={PACKET_NUMBER_KEY}>Packet Number</option>
                     </select>
                   </div>
                   <div>
-                    <label className="ui-label" htmlFor="graph-y-variable">
+                    <label className="ui-label" htmlFor="line-y-variable">
                       Y Variable
                     </label>
                     <select
-                      id="graph-y-variable"
+                      id="line-y-variable"
                       className="ui-input"
                       value={yVariable}
                       onChange={(event) => setYVariable(event.target.value)}
                     >
                       {variableOptions.map((option) => (
-                        <option key={`y-${option.value}`} value={option.value}>
+                        <option key={option.value} value={option.value}>
                           {option.label}
                         </option>
                       ))}
@@ -298,80 +281,29 @@ export const TwoDGraphPanel: React.FC<PanelProps> = () => {
                   </div>
                 </div>
 
-                <div className="grid gap-3 md:grid-cols-2">
-                  <div>
-                    <label className="ui-label" htmlFor="graph-x-scale-mode">
-                      X Scale
-                    </label>
-                    <select
-                      id="graph-x-scale-mode"
-                      className="ui-input"
-                      value={xScaleMode}
-                      onChange={(event) => setXScaleMode(event.target.value as ScaleMode)}
-                    >
-                      <option value="auto">Auto</option>
-                      <option value="manual">Manual</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="ui-label" htmlFor="graph-y-scale-mode">
-                      Y Scale
-                    </label>
-                    <select
-                      id="graph-y-scale-mode"
-                      className="ui-input"
-                      value={yScaleMode}
-                      onChange={(event) => setYScaleMode(event.target.value as ScaleMode)}
-                    >
-                      <option value="auto">Auto</option>
-                      <option value="manual">Manual</option>
-                    </select>
-                  </div>
+                <div>
+                  <label className="ui-label" htmlFor="line-y-scale-mode">
+                    Y Scale
+                  </label>
+                  <select
+                    id="line-y-scale-mode"
+                    className="ui-input"
+                    value={yScaleMode}
+                    onChange={(event) => setYScaleMode(event.target.value as ScaleMode)}
+                  >
+                    <option value="auto">Auto</option>
+                    <option value="manual">Manual</option>
+                  </select>
                 </div>
-
-                {xScaleMode === "manual" ? (
-                  <div className="grid gap-3 md:grid-cols-2">
-                    <div>
-                      <label className="ui-label" htmlFor="graph-x-min">
-                        X Min
-                      </label>
-                      <input
-                        id="graph-x-min"
-                        className="ui-input"
-                        type="text"
-                        inputMode="decimal"
-                        value={xMinInput}
-                        onChange={(event) =>
-                          setXMinInput(sanitizeSignedDecimalInput(event.target.value))
-                        }
-                      />
-                    </div>
-                    <div>
-                      <label className="ui-label" htmlFor="graph-x-max">
-                        X Max
-                      </label>
-                      <input
-                        id="graph-x-max"
-                        className="ui-input"
-                        type="text"
-                        inputMode="decimal"
-                        value={xMaxInput}
-                        onChange={(event) =>
-                          setXMaxInput(sanitizeSignedDecimalInput(event.target.value))
-                        }
-                      />
-                    </div>
-                  </div>
-                ) : null}
 
                 {yScaleMode === "manual" ? (
                   <div className="grid gap-3 md:grid-cols-2">
                     <div>
-                      <label className="ui-label" htmlFor="graph-y-min">
+                      <label className="ui-label" htmlFor="line-y-min">
                         Y Min
                       </label>
                       <input
-                        id="graph-y-min"
+                        id="line-y-min"
                         className="ui-input"
                         type="text"
                         inputMode="decimal"
@@ -382,11 +314,11 @@ export const TwoDGraphPanel: React.FC<PanelProps> = () => {
                       />
                     </div>
                     <div>
-                      <label className="ui-label" htmlFor="graph-y-max">
+                      <label className="ui-label" htmlFor="line-y-max">
                         Y Max
                       </label>
                       <input
-                        id="graph-y-max"
+                        id="line-y-max"
                         className="ui-input"
                         type="text"
                         inputMode="decimal"
@@ -399,29 +331,21 @@ export const TwoDGraphPanel: React.FC<PanelProps> = () => {
                   </div>
                 ) : null}
 
-                <div>
-                  <label className="ui-label" htmlFor="graph-display-mode">
-                    Render Mode
-                  </label>
-                  <select
-                    id="graph-display-mode"
-                    className="ui-input"
-                    value={displayMode}
-                    onChange={(event) =>
-                      setDisplayMode(event.target.value as "separate" | "lines")
-                    }
-                  >
-                    <option value="separate">Keep Dots Separate</option>
-                    <option value="lines">Connect Neighboring Dots</option>
-                  </select>
-                </div>
+                <label className="inline-flex items-center gap-2 text-sm text-foreground">
+                  <input
+                    type="checkbox"
+                    checked={showPoints}
+                    onChange={(event) => setShowPoints(event.target.checked)}
+                  />
+                  Show Points
+                </label>
 
                 <div>
-                  <label className="ui-label" htmlFor="graph-fullscreen-fit">
+                  <label className="ui-label" htmlFor="line-fullscreen-fit">
                     Full-Screen Fit
                   </label>
                   <select
-                    id="graph-fullscreen-fit"
+                    id="line-fullscreen-fit"
                     className="ui-input"
                     value={fullScreenFitMode}
                     onChange={(event) =>

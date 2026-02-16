@@ -21,6 +21,7 @@ export interface PacketSelection {
 export interface RobotTelemetrySnapshot {
   connectionStatus: RobotConnectionStatus;
   ipAddress: string;
+  connectionMessage: string | null;
   telemetryColumns: string[];
   telemetryRows: TelemetryRow[];
   packetSelection: PacketSelection;
@@ -40,6 +41,8 @@ class RobotTelemetryManager {
 
   private ipAddress = "192.168.43.1";
 
+  private connectionMessage: string | null = null;
+
   private telemetryColumns: string[] = [];
 
   private telemetryRows: TelemetryRow[] = [];
@@ -56,13 +59,18 @@ class RobotTelemetryManager {
 
   private connectTimer: number | null = null;
 
+  private socket: WebSocket | null = null;
+
   private mockStreamTimer: number | null = null;
 
   private streamPaused = false;
 
+  private isDemoMode = false;
+
   private snapshot: RobotTelemetrySnapshot = {
     connectionStatus: this.connectionStatus,
     ipAddress: this.ipAddress,
+    connectionMessage: this.connectionMessage,
     telemetryColumns: this.telemetryColumns,
     telemetryRows: this.telemetryRows,
     packetSelection: this.packetSelection,
@@ -83,7 +91,7 @@ class RobotTelemetryManager {
   getSnapshot = () => this.snapshot;
 
   setIpAddress = (ipAddress: string) => {
-    const sanitized = ipAddress.replace(/[^0-9.]/g, "");
+    const sanitized = ipAddress.replace(/\s+/g, "");
     if (sanitized === this.ipAddress) return;
     this.ipAddress = sanitized;
     this.emit();
@@ -159,7 +167,7 @@ class RobotTelemetryManager {
     this.streamPaused = paused;
     if (this.streamPaused) {
       this.stopMockStream();
-    } else if (this.connectionStatus === "connected") {
+    } else if (this.connectionStatus === "connected" && this.isDemoMode) {
       this.startMockStream();
     }
     this.emit();
@@ -171,25 +179,43 @@ class RobotTelemetryManager {
 
   connect = () => {
     if (this.connectionStatus !== "disconnected") return;
+    const connectTarget = this.ipAddress.trim();
+    if (!connectTarget) {
+      this.connectionMessage = "Enter a robot address or type demo.";
+      this.emit();
+      return;
+    }
 
     this.connectionStatus = "connecting";
+    this.connectionMessage = null;
     this.emit();
 
     this.clearConnectTimer();
-    this.connectTimer = window.setTimeout(() => {
-      this.connectionStatus = "connected";
-      if (!this.streamPaused) {
-        this.startMockStream();
-      }
-      this.emit();
-    }, 700);
+    if (connectTarget.toLowerCase() === "demo") {
+      this.isDemoMode = true;
+      this.connectTimer = window.setTimeout(() => {
+        this.connectionStatus = "connected";
+        this.connectionMessage = "Connected in demo mode.";
+        if (!this.streamPaused) {
+          this.startMockStream();
+        }
+        this.emit();
+      }, 700);
+      return;
+    }
+
+    this.isDemoMode = false;
+    this.connectToRobotSocket(connectTarget);
   };
 
   disconnect = () => {
     this.clearConnectTimer();
     this.stopMockStream();
+    this.closeSocket();
+    this.isDemoMode = false;
     if (this.connectionStatus === "disconnected") return;
     this.connectionStatus = "disconnected";
+    this.connectionMessage = null;
     this.streamPaused = false;
     this.emit();
   };
@@ -347,6 +373,7 @@ class RobotTelemetryManager {
     this.snapshot = {
       connectionStatus: this.connectionStatus,
       ipAddress: this.ipAddress,
+      connectionMessage: this.connectionMessage,
       telemetryColumns: [...this.telemetryColumns],
       telemetryRows: this.telemetryRows.map((row) => ({
         id: row.id,
@@ -361,7 +388,7 @@ class RobotTelemetryManager {
   private reconcileSelectionWithRows = () => {
     const lastIndex = Math.max(0, this.telemetryRows.length - 1);
     let startIndex = Math.min(Math.max(this.packetSelection.startIndex, 0), lastIndex);
-    let endIndex = this.packetSelection.endFollowsLatest
+    const endIndex = this.packetSelection.endFollowsLatest
       ? lastIndex
       : Math.min(Math.max(this.packetSelection.endIndex, 0), lastIndex);
 
@@ -402,6 +429,153 @@ class RobotTelemetryManager {
       const now = Date.now();
       this.addTelemetrySample(this.createRandomTelemetryDatums(now), now);
     }, 1000);
+  };
+
+  private connectToRobotSocket = (connectTarget: string) => {
+    const socketUrl =
+      connectTarget.startsWith("ws://") || connectTarget.startsWith("wss://")
+        ? connectTarget
+        : `ws://${connectTarget}`;
+
+    let socket: WebSocket;
+    try {
+      socket = new WebSocket(socketUrl);
+    } catch {
+      this.connectionStatus = "disconnected";
+      this.connectionMessage = `Unable to connect to ${connectTarget}.`;
+      this.emit();
+      return;
+    }
+
+    this.socket = socket;
+    let settled = false;
+
+    const failConnect = (message: string) => {
+      if (settled) return;
+      settled = true;
+      this.clearConnectTimer();
+      if (this.socket === socket) {
+        this.socket = null;
+      }
+      if (this.connectionStatus === "connecting") {
+        this.connectionStatus = "disconnected";
+        this.connectionMessage = message;
+        this.emit();
+      }
+      socket.close();
+    };
+
+    this.connectTimer = window.setTimeout(() => {
+      failConnect(`Connection timed out for ${connectTarget}.`);
+    }, 3000);
+
+    socket.onopen = () => {
+      if (settled) return;
+      settled = true;
+      this.clearConnectTimer();
+      this.connectionStatus = "connected";
+      this.connectionMessage = `Connected to ${connectTarget}.`;
+      this.emit();
+    };
+
+    socket.onerror = () => {
+      failConnect(`Failed to connect to ${connectTarget}.`);
+    };
+
+    socket.onclose = (event) => {
+      if (!settled) {
+        failConnect(`Failed to connect to ${connectTarget}.`);
+        return;
+      }
+
+      if (this.connectionStatus === "connected") {
+        this.closeSocket();
+        this.stopMockStream();
+        this.isDemoMode = false;
+        this.connectionStatus = "disconnected";
+        this.streamPaused = false;
+        this.connectionMessage = event.wasClean
+          ? "Connection closed."
+          : `Connection lost to ${connectTarget}.`;
+        this.emit();
+      }
+    };
+
+    socket.onmessage = (event) => {
+      const data = this.toTelemetryDatums(event.data);
+      if (!data || data.length === 0) return;
+      this.addTelemetrySample(data, Date.now());
+    };
+  };
+
+  private closeSocket = () => {
+    if (!this.socket) return;
+    this.socket.onopen = null;
+    this.socket.onmessage = null;
+    this.socket.onerror = null;
+    this.socket.onclose = null;
+    this.socket.close();
+    this.socket = null;
+  };
+
+  private toTelemetryDatums = (payload: unknown): TelemetryDatum[] | null => {
+    if (typeof payload !== "string") {
+      return null;
+    }
+
+    try {
+      const parsed = JSON.parse(payload) as unknown;
+
+      if (Array.isArray(parsed)) {
+        if (
+          parsed.every(
+            (entry) =>
+              typeof entry === "object" &&
+              entry !== null &&
+              "name" in entry &&
+              "value" in entry,
+          )
+        ) {
+          return parsed as TelemetryDatum[];
+        }
+      }
+
+      if (typeof parsed === "object" && parsed !== null) {
+        const asRecord = parsed as Record<string, unknown>;
+
+        if (Array.isArray(asRecord.telemetry)) {
+          const telemetry = asRecord.telemetry;
+          if (
+            telemetry.every(
+              (entry) =>
+                typeof entry === "object" &&
+                entry !== null &&
+                "name" in entry &&
+                "value" in entry,
+            )
+          ) {
+            return telemetry as TelemetryDatum[];
+          }
+        }
+
+        const datums = Object.entries(asRecord)
+          .filter(([, value]) =>
+            ["string", "number", "boolean"].includes(typeof value),
+          )
+          .map(([name, value]) => ({
+            name,
+            value: value as TelemetryValue,
+          }));
+
+        if (datums.length > 0) {
+          return datums;
+        }
+      }
+    } catch {
+      return null;
+    }
+
+    return null;
   };
 
   private createRandomTelemetryDatums = (timestamp: number): TelemetryDatum[] => {

@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import React, { useEffect, useMemo, useState } from "react";
 import type { PanelProps } from "../PanelRegistry";
 import { useRobotTelemetry } from "../use-robot-telemetry";
@@ -143,11 +144,11 @@ export const PieChartPanel: React.FC<PanelProps> = () => {
 
   useEffect(() => {
     if (telemetryColumns.length === 0) {
-      setSelectedColumn("");
+      queueMicrotask(() => setSelectedColumn(""));
       return;
     }
     if (!telemetryColumns.includes(selectedColumn)) {
-      setSelectedColumn(telemetryColumns[0]);
+      queueMicrotask(() => setSelectedColumn(telemetryColumns[0]));
     }
   }, [selectedColumn, telemetryColumns]);
 
@@ -182,29 +183,33 @@ export const PieChartPanel: React.FC<PanelProps> = () => {
   }, [selectedColumn, selectedRows]);
 
   useEffect(() => {
-    setSetOrderKeys((previousOrder) => {
-      const appended = buckets
-        .map((bucket) => bucket.key)
-        .filter((key) => !previousOrder.includes(key));
-      return [...previousOrder, ...appended];
+    queueMicrotask(() => {
+      setSetOrderKeys((previousOrder) => {
+        const appended = buckets
+          .map((bucket) => bucket.key)
+          .filter((key) => !previousOrder.includes(key));
+        return [...previousOrder, ...appended];
+      });
     });
   }, [buckets]);
 
   useEffect(() => {
-    setEnabledMap((prev) => {
-      const next: Record<string, boolean> = {};
-      buckets.forEach((bucket) => {
-        next[bucket.key] = prev[bucket.key] ?? true;
+    queueMicrotask(() => {
+      setEnabledMap((prev) => {
+        const next: Record<string, boolean> = {};
+        buckets.forEach((bucket) => {
+          next[bucket.key] = prev[bucket.key] ?? true;
+        });
+        return next;
       });
-      return next;
-    });
 
-    setColorMap((prev) => {
-      const next: Record<string, string> = { ...prev };
-      buckets.forEach((bucket) => {
-        next[bucket.key] = prev[bucket.key] ?? colorFromKey(bucket.key);
+      setColorMap((prev) => {
+        const next: Record<string, string> = { ...prev };
+        buckets.forEach((bucket) => {
+          next[bucket.key] = prev[bucket.key] ?? colorFromKey(bucket.key);
+        });
+        return next;
       });
-      return next;
     });
   }, [buckets]);
 
@@ -290,7 +295,9 @@ export const PieChartPanel: React.FC<PanelProps> = () => {
   }, [center, colorMap, colorMode, gradientColorMap, radius, visibleBuckets, visibleCount]);
 
   const chartCard = (
-    <section className={`ui-card relative ${isFullScale ? "h-full" : ""}`}>
+    <section
+      className={`ui-card relative ${isFullScale ? "h-full p-0 overflow-hidden border-0" : ""}`}
+    >
       <button
         type="button"
         className="ui-btn absolute right-3 top-3 z-10 h-8 w-8 p-0"
@@ -312,10 +319,15 @@ export const PieChartPanel: React.FC<PanelProps> = () => {
           range.
         </div>
       ) : (
-        <div className="w-full">
+        <div className={isFullScale ? "h-full w-full" : "w-full"}>
           <svg
             viewBox={`0 0 ${chartSize} ${chartSize}`}
-            className="block w-full h-auto max-h-[72vh] bg-transparent"
+            preserveAspectRatio="xMidYMid meet"
+            className={
+              isFullScale
+                ? "block h-full w-full bg-transparent"
+                : "block h-auto w-full max-h-[72vh] bg-transparent"
+            }
           >
             <circle
               cx={center}
@@ -327,7 +339,9 @@ export const PieChartPanel: React.FC<PanelProps> = () => {
             />
 
             {slices.map((slice) => (
-              <path key={slice.key} d={slice.path} fill={slice.color} />
+              <path key={slice.key} d={slice.path} fill={slice.color}>
+                <title>{`${slice.label}: ${slice.count}`}</title>
+              </path>
             ))}
 
             <circle
@@ -365,7 +379,7 @@ export const PieChartPanel: React.FC<PanelProps> = () => {
 
   return (
     <div className="panel-content">
-      <div className="panel-shell">
+      <div className={`panel-shell ${isFullScale ? "h-full p-0 gap-0" : ""}`}>
         {!isFullScale ? (
           <>
             <header className="panel-header">

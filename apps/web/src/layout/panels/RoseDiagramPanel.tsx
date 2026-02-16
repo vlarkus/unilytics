@@ -1,8 +1,10 @@
+/* eslint-disable react-refresh/only-export-components */
 import React, { useEffect, useMemo, useState } from "react";
 import type { PanelProps } from "../PanelRegistry";
 import { useRobotTelemetry } from "../use-robot-telemetry";
 
 type ViewMode = "range" | "cyclical";
+type RangeMode = "auto" | "manual";
 
 export const RoseDiagramPanelTags = [
   "chart",
@@ -35,6 +37,7 @@ export const RoseDiagramPanel: React.FC<PanelProps> = () => {
 
   const [selectedColumn, setSelectedColumn] = useState("");
   const [viewMode, setViewMode] = useState<ViewMode>("range");
+  const [rangeMode, setRangeMode] = useState<RangeMode>("auto");
   const [minInput, setMinInput] = useState("0");
   const [maxInput, setMaxInput] = useState("360");
   const [sidesInput, setSidesInput] = useState("8");
@@ -42,20 +45,15 @@ export const RoseDiagramPanel: React.FC<PanelProps> = () => {
 
   useEffect(() => {
     if (telemetryColumns.length === 0) {
-      setSelectedColumn("");
+      queueMicrotask(() => setSelectedColumn(""));
       return;
     }
     if (!telemetryColumns.includes(selectedColumn)) {
-      setSelectedColumn(telemetryColumns[0]);
+      queueMicrotask(() => setSelectedColumn(telemetryColumns[0]));
     }
   }, [selectedColumn, telemetryColumns]);
 
   const sideCount = Math.max(1, Math.round(parseNumber(sidesInput, 8)));
-  const minValue = parseNumber(minInput, 0);
-  const maxValue = parseNumber(maxInput, 360);
-  const lowerBound = Math.min(minValue, maxValue);
-  const upperBound = Math.max(minValue, maxValue);
-  const span = Math.max(upperBound - lowerBound, Number.EPSILON);
 
   const selectedRows = useMemo(() => {
     if (telemetryRows.length === 0) return [] as typeof telemetryRows;
@@ -78,6 +76,16 @@ export const RoseDiagramPanel: React.FC<PanelProps> = () => {
       .map((raw) => (typeof raw === "number" ? raw : Number(raw)))
       .filter((value) => Number.isFinite(value));
   }, [selectedColumn, selectedRows]);
+
+  const autoMin = numericValues.length > 0 ? Math.min(...numericValues) : 0;
+  const autoMax = numericValues.length > 0 ? Math.max(...numericValues) : 360;
+  const minValue = parseNumber(minInput, autoMin);
+  const maxValue = parseNumber(maxInput, autoMax);
+  const lowerBound =
+    rangeMode === "auto" ? autoMin : Math.min(minValue, maxValue);
+  const upperBound =
+    rangeMode === "auto" ? autoMax : Math.max(minValue, maxValue);
+  const span = Math.max(upperBound - lowerBound, Number.EPSILON);
 
   const roseData = useMemo(() => {
     const step = (2 * Math.PI) / sideCount;
@@ -112,7 +120,7 @@ export const RoseDiagramPanel: React.FC<PanelProps> = () => {
       consideredValueCount: inputValues.length,
       maxCount: Math.max(...counts, 1),
     };
-  }, [lowerBound, numericValues, sideCount, span, viewMode]);
+  }, [lowerBound, numericValues, sideCount, span, upperBound, viewMode]);
 
   const chartSize = 620;
   const center = chartSize / 2;
@@ -148,10 +156,15 @@ export const RoseDiagramPanel: React.FC<PanelProps> = () => {
           No numeric telemetry values available for plotting yet.
         </div>
       ) : (
-        <div className="w-full">
+        <div className={isFullScale ? "h-full w-full" : "w-full"}>
           <svg
             viewBox={`0 0 ${chartSize} ${chartSize}`}
-            className="block w-full h-auto max-h-[72vh] bg-transparent"
+            preserveAspectRatio="xMidYMid meet"
+            className={
+              isFullScale
+                ? "block h-full w-full bg-transparent"
+                : "block h-auto w-full max-h-[72vh] bg-transparent"
+            }
           >
             <polygon
               points={referenceOutlinePoints}
@@ -199,7 +212,9 @@ export const RoseDiagramPanel: React.FC<PanelProps> = () => {
               fill="hsl(var(--primary) / 0.2)"
               stroke="hsl(var(--primary))"
               strokeWidth="2"
-            />
+            >
+              <title>{`Values considered: ${roseData.consideredValueCount}`}</title>
+            </polygon>
 
             {sideIndices.map((index) => {
               const angle = index * angleStep;
@@ -212,7 +227,9 @@ export const RoseDiagramPanel: React.FC<PanelProps> = () => {
                   cy={point.y}
                   r={3}
                   fill="hsl(var(--primary))"
-                />
+                >
+                  <title>{`Side ${index + 1}: ${roseData.counts[index]} values`}</title>
+                </circle>
               );
             })}
 
@@ -237,7 +254,7 @@ export const RoseDiagramPanel: React.FC<PanelProps> = () => {
 
   return (
     <div className="panel-content">
-      <div className="panel-shell">
+      <div className={`panel-shell ${isFullScale ? "h-full p-0 gap-0" : ""}`}>
         {!isFullScale ? (
           <>
             <header className="panel-header">
@@ -273,6 +290,58 @@ export const RoseDiagramPanel: React.FC<PanelProps> = () => {
                 </div>
 
                 <div>
+                  <label className="ui-label" htmlFor="rose-range-mode">
+                    Scale Mode
+                  </label>
+                  <select
+                    id="rose-range-mode"
+                    className="ui-input"
+                    value={rangeMode}
+                    onChange={(event) =>
+                      setRangeMode(event.target.value as RangeMode)
+                    }
+                  >
+                    <option value="auto">Auto</option>
+                    <option value="manual">Manual</option>
+                  </select>
+                </div>
+
+                {rangeMode === "manual" ? (
+                  <div className="grid gap-3 md:grid-cols-2">
+                    <div>
+                      <label className="ui-label" htmlFor="rose-min">
+                        Min Value
+                      </label>
+                      <input
+                        id="rose-min"
+                        type="text"
+                        inputMode="decimal"
+                        className="ui-input"
+                        value={minInput}
+                        onChange={(event) =>
+                          setMinInput(sanitizeDecimalInput(event.target.value))
+                        }
+                      />
+                    </div>
+                    <div>
+                      <label className="ui-label" htmlFor="rose-max">
+                        Max Value
+                      </label>
+                      <input
+                        id="rose-max"
+                        type="text"
+                        inputMode="decimal"
+                        className="ui-input"
+                        value={maxInput}
+                        onChange={(event) =>
+                          setMaxInput(sanitizeDecimalInput(event.target.value))
+                        }
+                      />
+                    </div>
+                  </div>
+                ) : null}
+
+                <div>
                   <label className="ui-label" htmlFor="rose-view-mode">
                     Viewing Mode
                   </label>
@@ -287,39 +356,6 @@ export const RoseDiagramPanel: React.FC<PanelProps> = () => {
                     <option value="range">Range</option>
                     <option value="cyclical">Cyclical</option>
                   </select>
-                </div>
-
-                <div className="grid gap-3 md:grid-cols-2">
-                  <div>
-                    <label className="ui-label" htmlFor="rose-min">
-                      Min Value
-                    </label>
-                    <input
-                      id="rose-min"
-                      type="text"
-                      inputMode="decimal"
-                      className="ui-input"
-                      value={minInput}
-                      onChange={(event) =>
-                        setMinInput(sanitizeDecimalInput(event.target.value))
-                      }
-                    />
-                  </div>
-                  <div>
-                    <label className="ui-label" htmlFor="rose-max">
-                      Max Value
-                    </label>
-                    <input
-                      id="rose-max"
-                      type="text"
-                      inputMode="decimal"
-                      className="ui-input"
-                      value={maxInput}
-                      onChange={(event) =>
-                        setMaxInput(sanitizeDecimalInput(event.target.value))
-                      }
-                    />
-                  </div>
                 </div>
 
                 <div>
@@ -349,7 +385,9 @@ export const RoseDiagramPanel: React.FC<PanelProps> = () => {
           </>
         ) : null}
 
-        <section className={`ui-card relative ${isFullScale ? "h-full" : ""}`}>
+        <section
+          className={`ui-card relative ${isFullScale ? "h-full p-0 overflow-hidden border-0" : ""}`}
+        >
           <button
             type="button"
             className="ui-btn absolute right-3 top-3 z-10 h-8 w-8 p-0"
