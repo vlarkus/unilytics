@@ -82,6 +82,7 @@ panelRegistry.register(
 );
 
 export const MainScreen: React.FC = () => {
+  const logoSrc = `${import.meta.env.BASE_URL}logo.png`;
   const [model] = useState(() => Model.fromJson(defaultLayout));
   const [isAddPanelOpen, setIsAddPanelOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -225,7 +226,7 @@ export const MainScreen: React.FC = () => {
       <div className="ui-topbar sticky top-0 z-50">
         <div className="flex items-center gap-3">
           <img
-            src="/logo.png"
+            src={logoSrc}
             alt="Logo"
             className="h-7 w-auto select-none"
             draggable={false}

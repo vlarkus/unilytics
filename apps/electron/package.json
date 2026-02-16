@@ -4,7 +4,7 @@
     "main": "dist/main.js",
     "description": "Electron wrapper for the web dashboard",
     "scripts": {
-        "clean": "shx rm -rf dist",
+        "clean": "cmd /c \"if exist dist rmdir /s /q dist & exit /b 0\"",
         "prebuild": "pnpm clean && tsc && shx mkdir -p dist/renderer && shx cp -r ../web/dist dist/renderer",
         "build": "pnpm prebuild && electron-builder",
         "start": "electron dist/main.js",
@@ -12,7 +12,11 @@
     },
     "build": {
         "appId": "com.adaptive.telemetry",
-        "productName": "Adaptive Telemetry",
+        "productName": "Unilytics",
+        "win": {
+            "icon": "../web/public/logo.png",
+            "signAndEditExecutable": false
+        },
         "files": [
             "dist/**/*"
         ],
@@ -20,9 +24,7 @@
             "output": "release"
         }
     },
-    "dependencies": {
-        "electron-is-dev": "^3.0.1"
-    },
+    "dependencies": {},
     "devDependencies": {
         "electron": "^33.2.1",
         "electron-builder": "^25.1.8",

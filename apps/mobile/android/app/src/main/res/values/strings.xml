@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">Adaptive Telemetry</string>
-    <string name="title_activity_main">Adaptive Telemetry</string>
+    <string name="app_name">Unilytics</string>
+    <string name="title_activity_main">Unilytics</string>
     <string name="package_name">com.adaptive.telemetry</string>
     <string name="custom_url_scheme">com.adaptive.telemetry</string>
 </resources>

@@ -1,12 +1,17 @@
 import { app, BrowserWindow } from 'electron';
 import * as path from 'path';
 import * as fs from 'fs';
-import isDev from 'electron-is-dev';
 
 function createWindow() {
+    const isDev = !app.isPackaged;
+    const iconPath = isDev
+        ? path.join(__dirname, "../../web/public/logo.png")
+        : path.join(__dirname, "renderer/dist/logo.png");
+
     const win = new BrowserWindow({
         width: 1200,
         height: 800,
+        icon: iconPath,
         webPreferences: {
             nodeIntegration: true,
             contextIsolation: false, // For simplicity in this setup, consider enabling contextIsolation for security in production
@@ -30,6 +35,10 @@ function createWindow() {
 }
 
 app.whenReady().then(() => {
+    if (process.platform === "win32") {
+        app.setAppUserModelId("com.adaptive.telemetry.unilytics");
+    }
+
     createWindow();
 
     app.on('activate', () => {

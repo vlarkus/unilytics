@@ -4,13 +4,15 @@ import type { PanelProps } from "../PanelRegistry";
 export const welcomePanelTags = ["core", "home", "onboarding", "quick start"];
 
 export const WelcomePanel: React.FC<PanelProps> = () => {
+  const logoSrc = `${import.meta.env.BASE_URL}logo.png`;
+
   return (
     <div className="panel-content">
       <div className="panel-shell">
         <div className="mb-4 flex justify-center">
           <img
-            src="/logo.png"
-            alt="Adaptive Telemetry Dashboard logo"
+            src={logoSrc}
+            alt="Unilytics logo"
             className="h-50 w-auto select-none"
             draggable={false}
           />
