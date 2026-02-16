@@ -3,6 +3,8 @@ import type { PanelProps } from "../PanelRegistry";
 import { robotTelemetryManager } from "../robot-telemetry-manager";
 import { useRobotTelemetry } from "../use-robot-telemetry";
 
+export const packetSelectionPanelTags = ["selection", "packets", "time-window", "analysis"];
+
 const digitsOnly = (value: string) => value.replace(/\D/g, "");
 
 export const PacketSelectionPanel: React.FC<PanelProps> = () => {

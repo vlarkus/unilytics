@@ -3,6 +3,8 @@ import type { PanelProps } from "../PanelRegistry";
 import { robotTelemetryManager } from "../robot-telemetry-manager";
 import { useRobotTelemetry } from "../use-robot-telemetry";
 
+export const telemetryTablePanelTags = ["telemetry", "data", "table", "logs"];
+
 const formatTimestamp = (timestamp: number) =>
   new Date(timestamp).toLocaleTimeString([], {
     hour12: false,

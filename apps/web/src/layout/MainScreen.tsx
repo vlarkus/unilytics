@@ -3,20 +3,20 @@ import { Layout, Model, TabNode, Actions, DockLocation } from 'flexlayout-react'
 import { Settings, Plus, Search } from 'lucide-react';
 import 'flexlayout-react/style/light.css';
 import { panelRegistry, defaultLayout } from './PanelRegistry';
-import { WelcomePanel } from './panels/BuiltInPanels';
-import { StyleGuidePanel } from './panels/StyleGuidePanel';
-import { RobotConnectionPanel } from './panels/RobotConnectionPanel';
-import { TelemetryTablePanel } from './panels/TelemetryTablePanel';
-import { PacketSelectionPanel } from './panels/PacketSelectionPanel';
-import { MonovariateRoseDiagramPanel } from './panels/MonovariateRoseDiagramPanel';
+import { WelcomePanel, welcomePanelTags } from './panels/BuiltInPanels';
+import { StyleGuidePanel, styleGuidePanelTags } from './panels/StyleGuidePanel';
+import { RobotConnectionPanel, robotConnectionPanelTags } from './panels/RobotConnectionPanel';
+import { TelemetryTablePanel, telemetryTablePanelTags } from './panels/TelemetryTablePanel';
+import { PacketSelectionPanel, packetSelectionPanelTags } from './panels/PacketSelectionPanel';
+import { MonovariateRoseDiagramPanel, monovariateRoseDiagramPanelTags } from './panels/MonovariateRoseDiagramPanel';
 
 // Register built-in panels
-panelRegistry.register('WelcomePanel', WelcomePanel, 'Welcome');
-panelRegistry.register('StyleGuidePanel', StyleGuidePanel, 'UI Reference');
-panelRegistry.register('RobotConnectionPanel', RobotConnectionPanel, 'Robot Connection');
-panelRegistry.register('TelemetryTablePanel', TelemetryTablePanel, 'Telemetry Table');
-panelRegistry.register('PacketSelectionPanel', PacketSelectionPanel, 'Packet Selection');
-panelRegistry.register('MonovariateRoseDiagramPanel', MonovariateRoseDiagramPanel, 'Monovariate Rose Diagram');
+panelRegistry.register('WelcomePanel', WelcomePanel, 'Welcome', welcomePanelTags);
+panelRegistry.register('StyleGuidePanel', StyleGuidePanel, 'UI Reference', styleGuidePanelTags);
+panelRegistry.register('RobotConnectionPanel', RobotConnectionPanel, 'Robot Connection', robotConnectionPanelTags);
+panelRegistry.register('TelemetryTablePanel', TelemetryTablePanel, 'Telemetry Table', telemetryTablePanelTags);
+panelRegistry.register('PacketSelectionPanel', PacketSelectionPanel, 'Packet Selection', packetSelectionPanelTags);
+panelRegistry.register('MonovariateRoseDiagramPanel', MonovariateRoseDiagramPanel, 'Rose Diagram', monovariateRoseDiagramPanelTags);
 
 interface MainScreenProps {
     onOpenSettings: () => void;
@@ -39,6 +39,20 @@ export const MainScreen: React.FC<MainScreenProps> = ({ onOpenSettings }) => {
         document.addEventListener("mousedown", handleClickOutside);
         return () => document.removeEventListener("mousedown", handleClickOutside);
     }, [addPanelRef]);
+
+    useEffect(() => {
+        const isTouchOnly = window.matchMedia("(any-pointer: coarse)").matches
+            && !window.matchMedia("(any-pointer: fine)").matches;
+
+        if (!isTouchOnly) return;
+
+        model.doAction(Actions.updateModelAttributes({
+            tabSetEnableDivide: false,
+            tabSetEnableDrag: false,
+            tabSetEnableDrop: false,
+            enableEdgeDock: false,
+        }));
+    }, [model]);
 
     const factory = (node: TabNode) => {
         const componentType = node.getComponent();
@@ -69,7 +83,8 @@ export const MainScreen: React.FC<MainScreenProps> = ({ onOpenSettings }) => {
 
     const availablePanels = panelRegistry.getAvailablePanels().filter(p =>
         p.displayName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        p.type.toLowerCase().includes(searchQuery.toLowerCase())
+        p.type.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        p.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()))
     );
 
     return (
@@ -117,7 +132,7 @@ export const MainScreen: React.FC<MainScreenProps> = ({ onOpenSettings }) => {
                                                 className="ui-menu-item"
                                                 onClick={() => onAddPanel(panel.type)}
                                             >
-                                                {panel.displayName}
+                                                <span className="truncate">{panel.displayName}</span>
                                             </button>
                                         ))
                                     ) : (

@@ -11,21 +11,23 @@ export type PanelComponent = React.ComponentType<PanelProps>;
 export interface PanelDefinition {
     type: string;
     displayName: string;
+    tags: string[];
 }
 
 interface PanelRegistration {
     component: PanelComponent;
     displayName: string;
+    tags: string[];
 }
 
 class PanelRegistry {
     private panels: Map<string, PanelRegistration> = new Map();
 
-    register(type: string, component: PanelComponent, displayName: string = type) {
+    register(type: string, component: PanelComponent, displayName: string = type, tags: string[] = []) {
         if (this.panels.has(type)) {
             console.warn(`Panel type "${type}" is already registered. Overwriting.`);
         }
-        this.panels.set(type, { component, displayName });
+        this.panels.set(type, { component, displayName, tags });
     }
 
     get(type: string): PanelComponent | undefined {
@@ -36,10 +38,15 @@ class PanelRegistry {
         return this.panels.get(type)?.displayName ?? type;
     }
 
+    getTags(type: string): string[] {
+        return this.panels.get(type)?.tags ?? [];
+    }
+
     getAvailablePanels(): PanelDefinition[] {
         return Array.from(this.panels.entries()).map(([type, panel]) => ({
             type,
             displayName: panel.displayName,
+            tags: panel.tags,
         }));
     }
 }
@@ -51,7 +58,7 @@ export const defaultLayout: IJsonModel = {
     global: {
         tabEnableClose: true,
         tabSetEnableMaximize: true,
-        splitterEnableHandle: false,
+        splitterEnableHandle: true,
         splitterExtra: 10,
         splitterSize: 8, // Matches var(--gap)
     },
@@ -62,23 +69,12 @@ export const defaultLayout: IJsonModel = {
         children: [
             {
                 type: 'tabset',
-                weight: 60,
+                weight: 100,
                 children: [
                     {
                         type: 'tab',
                         name: 'Welcome',
                         component: 'WelcomePanel',
-                    },
-                ],
-            },
-            {
-                type: 'tabset',
-                weight: 40,
-                children: [
-                    {
-                        type: 'tab',
-                        name: 'UI Reference',
-                        component: 'StyleGuidePanel',
                     },
                 ],
             },

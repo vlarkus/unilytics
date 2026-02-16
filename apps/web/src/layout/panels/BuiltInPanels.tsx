@@ -1,6 +1,8 @@
 import React from 'react';
 import type { PanelProps } from '../PanelRegistry';
 
+export const welcomePanelTags = ['core', 'home', 'onboarding'];
+
 export const WelcomePanel: React.FC<PanelProps> = () => {
     return (
         <div className="panel-content">

@@ -1,6 +1,8 @@
 import React from "react";
 import type { PanelProps } from "../PanelRegistry";
 
+export const styleGuidePanelTags = ["dev", "design", "reference", "ui"];
+
 const shadcnComponentRegistry = [
   "Accordion",
   "Alert",

@@ -3,6 +3,8 @@ import type { PanelProps } from "../PanelRegistry";
 import { robotTelemetryManager } from "../robot-telemetry-manager";
 import { useRobotTelemetry } from "../use-robot-telemetry";
 
+export const robotConnectionPanelTags = ["network", "robot", "connection", "io"];
+
 export const RobotConnectionPanel: React.FC<PanelProps> = () => {
   const { connectionStatus, ipAddress } = useRobotTelemetry();
 
