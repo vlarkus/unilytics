@@ -1,38 +1,65 @@
-import React from 'react';
-import type { PanelProps } from '../PanelRegistry';
+import React from "react";
+import type { PanelProps } from "../PanelRegistry";
 
-export const welcomePanelTags = ['core', 'home', 'onboarding'];
+export const welcomePanelTags = ["core", "home", "onboarding", "quick start"];
 
 export const WelcomePanel: React.FC<PanelProps> = () => {
-    return (
-        <div className="panel-content">
-            <div className="panel-shell">
-                <header className="panel-header">
-                    <p className="panel-subtitle">Adaptive Telemetry Dashboard</p>
-                    <h1 className="panel-title">Welcome</h1>
-                    <p className="panel-subtitle">Build a workspace of panels for live robot data, logs, and diagnostics.</p>
-                </header>
-
-                <section className="ui-grid-2">
-                    <div className="ui-card">
-                        <h2 className="ui-card-title">1. Add Panels</h2>
-                        <p className="panel-subtitle">Use the plus button in the top bar to add available panels.</p>
-                    </div>
-                    <div className="ui-card">
-                        <h2 className="ui-card-title">2. Arrange Layout</h2>
-                        <p className="panel-subtitle">Drag tabs between groups and resize splitters to fit your workflow.</p>
-                    </div>
-                </section>
-
-                <section className="ui-card">
-                    <h2 className="ui-card-title">Starter Checklist</h2>
-                    <ul className="space-y-2 text-sm text-muted-foreground">
-                        <li>Add `UI Reference` first so you can preview controls.</li>
-                        <li>Open `Settings` to configure project defaults.</li>
-                        <li>Create custom panels when the base styles look correct.</li>
-                    </ul>
-                </section>
-            </div>
+  return (
+    <div className="panel-content">
+      <div className="panel-shell">
+        <div className="mb-4 flex justify-center">
+          <img
+            src="/logo.png"
+            alt="Adaptive Telemetry Dashboard logo"
+            className="h-50 w-auto select-none"
+            draggable={false}
+          />
         </div>
-    );
+        <section className="ui-card">
+          <h1 className="ui-card-title">Description</h1>
+          <p className="text-sm text-muted-foreground text-justify">
+            Unilytics is a customizable dashboard app for viewing and analyzing
+            FTC robot telemetry. It was built by{" "}
+            <strong className="ui-rainbow-text">14423 Robocorns</strong> to make
+            debugging, tuning, and match analysis faster and easier during
+            development and testing.
+          </p>
+        </section>
+        <section className="ui-card">
+          <h1 className="ui-card-title">Requirements</h1>
+          <p className="mt-3 text-sm text-muted-foreground text-justify">
+            To use this app, you need either a custom WebSocket implementation
+            on your robot to connect and stream data, or a simple CSV file with
+            prerecorded logs. You can also generate mock data and export it to
+            see an example.
+          </p>
+        </section>
+
+        <section className="ui-card">
+          <h2 className="ui-card-title">Quick Start</h2>
+          <ol className="mt-3 space-y-2 text-sm text-muted-foreground text-left">
+            <li>
+              <strong>
+                1. Open the <em>Robot Connection</em> panel
+              </strong>{" "}
+              and enter the robot IP address.
+            </li>
+            <li>
+              <strong>2. Connect</strong> and start collecting telemetry
+              packets.
+            </li>
+            <li>
+              <strong>3. Choose a packet range</strong> in the{" "}
+              <em>Packet Selection</em> panel.
+            </li>
+            <li>
+              <strong>4. Open any analysis panels</strong> you find useful (for
+              example, <em>Telemetry Table</em>, <em>Rose Diagram</em>, or{" "}
+              <em>Pie Chart</em>).
+            </li>
+          </ol>
+        </section>
+      </div>
+    </div>
+  );
 };

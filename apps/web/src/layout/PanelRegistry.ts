@@ -57,6 +57,7 @@ export const panelRegistry = new PanelRegistry();
 export const defaultLayout: IJsonModel = {
     global: {
         tabEnableClose: true,
+        tabEnableRename: false,
         tabSetEnableMaximize: true,
         splitterEnableHandle: true,
         splitterExtra: 10,

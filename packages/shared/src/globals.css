@@ -74,7 +74,7 @@
     --card-foreground: 0 0% 98%;
     --popover: 0 0% 3.9%;
     --popover-foreground: 0 0% 98%;
-    --primary: 217.2 91.2% 59.8%;
+    --primary: 340 60% 50%;
     --primary-foreground: 210 40% 98%;
     --secondary: 0 0% 14.9%;
     --secondary-foreground: 0 0% 98%;
@@ -1025,5 +1025,43 @@ body {
     height: 0.55rem;
     border-radius: 999px;
     background-color: hsl(var(--chart-1));
+  }
+
+  @keyframes ui-rainbow-shift {
+    from {
+      background-position: 0 50%;
+    }
+    to {
+      background-position: 560px 50%;
+    }
+  }
+
+  .ui-rainbow-text {
+    background-image: repeating-linear-gradient(
+      80deg,
+      /* Cycle 1 */
+      #ff0000 0px,
+      #ff7a00 40px,
+      #ffd400 80px,
+      #4cd137 120px,
+      #00c6ff 160px,
+      #2f6bff 200px,
+      #8e44ad 240px,
+      #ff0000 280px,
+      /* Cycle 2 */
+      #ff7a00 320px,
+      #ffd400 360px,
+      #4cd137 400px,
+      #00c6ff 440px,
+      #2f6bff 480px,
+      #8e44ad 520px,
+      #ff0000 560px
+    );
+    background-size: 560px 100%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+    animation: ui-rainbow-shift 10s linear infinite;
   }
 }

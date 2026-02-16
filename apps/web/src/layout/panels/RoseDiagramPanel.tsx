@@ -4,7 +4,12 @@ import { useRobotTelemetry } from "../use-robot-telemetry";
 
 type ViewMode = "range" | "cyclical";
 
-export const monovariateRoseDiagramPanelTags = ["chart", "rose", "visualization", "analysis"];
+export const RoseDiagramPanelTags = [
+  "chart",
+  "rose",
+  "visualization",
+  "analysis",
+];
 
 const sanitizeDecimalInput = (value: string) => {
   const hasLeadingMinus = value.trimStart().startsWith("-");
@@ -24,8 +29,9 @@ const parseNumber = (value: string, fallback: number) => {
 const formatValue = (value: number) =>
   Number.isInteger(value) ? String(value) : value.toFixed(2);
 
-export const MonovariateRoseDiagramPanel: React.FC<PanelProps> = () => {
-  const { telemetryColumns, telemetryRows, packetSelection } = useRobotTelemetry();
+export const RoseDiagramPanel: React.FC<PanelProps> = () => {
+  const { telemetryColumns, telemetryRows, packetSelection } =
+    useRobotTelemetry();
 
   const [selectedColumn, setSelectedColumn] = useState("");
   const [viewMode, setViewMode] = useState<ViewMode>("range");
@@ -54,7 +60,10 @@ export const MonovariateRoseDiagramPanel: React.FC<PanelProps> = () => {
   const selectedRows = useMemo(() => {
     if (telemetryRows.length === 0) return [] as typeof telemetryRows;
     const maxIndex = telemetryRows.length - 1;
-    const startIndex = Math.min(Math.max(packetSelection.startIndex, 0), maxIndex);
+    const startIndex = Math.min(
+      Math.max(packetSelection.startIndex, 0),
+      maxIndex,
+    );
     const endIndex = Math.min(Math.max(packetSelection.endIndex, 0), maxIndex);
     const lower = Math.min(startIndex, endIndex);
     const upper = Math.max(startIndex, endIndex);
@@ -76,13 +85,15 @@ export const MonovariateRoseDiagramPanel: React.FC<PanelProps> = () => {
 
     const inputValues =
       viewMode === "range"
-        ? numericValues.filter((value) => value >= lowerBound && value <= upperBound)
+        ? numericValues.filter(
+            (value) => value >= lowerBound && value <= upperBound,
+          )
         : numericValues;
 
     inputValues.forEach((value) => {
       const normalizedValue =
         viewMode === "cyclical"
-          ? ((value - lowerBound) % span + span) % span
+          ? (((value - lowerBound) % span) + span) % span
           : value - lowerBound;
       const clampedValue =
         viewMode === "cyclical"
@@ -90,7 +101,8 @@ export const MonovariateRoseDiagramPanel: React.FC<PanelProps> = () => {
           : Math.min(Math.max(normalizedValue, 0), span);
       const ratio = clampedValue / span;
       const angle = ratio * 2 * Math.PI;
-      const wrappedAngle = ((angle % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
+      const wrappedAngle =
+        ((angle % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
       const closestSide = Math.round(wrappedAngle / step) % sideCount;
       counts[closestSide] += 1;
     });
@@ -121,6 +133,13 @@ export const MonovariateRoseDiagramPanel: React.FC<PanelProps> = () => {
       return `${point.x},${point.y}`;
     })
     .join(" ");
+  const referenceOutlinePoints = sideIndices
+    .map((index) => {
+      const angle = index * angleStep;
+      const point = axisPoint(angle, radius);
+      return `${point.x},${point.y}`;
+    })
+    .join(" ");
 
   const roseDiagramContent = (
     <>
@@ -134,10 +153,8 @@ export const MonovariateRoseDiagramPanel: React.FC<PanelProps> = () => {
             viewBox={`0 0 ${chartSize} ${chartSize}`}
             className="block w-full h-auto max-h-[72vh] bg-transparent"
           >
-            <circle
-              cx={center}
-              cy={center}
-              r={radius}
+            <polygon
+              points={referenceOutlinePoints}
               fill="transparent"
               stroke="hsl(var(--foreground) / 0.65)"
               strokeWidth="1"
@@ -199,13 +216,18 @@ export const MonovariateRoseDiagramPanel: React.FC<PanelProps> = () => {
               );
             })}
 
-            <circle cx={center} cy={center} r={4} fill="hsl(var(--foreground))" />
+            <circle
+              cx={center}
+              cy={center}
+              r={4}
+              fill="hsl(var(--foreground))"
+            />
           </svg>
 
           {!isFullScale ? (
             <div className="mt-3 text-xs text-muted-foreground">
-              Considered values: {roseData.consideredValueCount} | Sides: {sideCount} | Packet
-              window: {selectedRows.length}
+              Considered values: {roseData.consideredValueCount} | Sides:{" "}
+              {sideCount} | Packet window: {selectedRows.length}
             </div>
           ) : null}
         </div>
@@ -258,7 +280,9 @@ export const MonovariateRoseDiagramPanel: React.FC<PanelProps> = () => {
                     id="rose-view-mode"
                     className="ui-input"
                     value={viewMode}
-                    onChange={(event) => setViewMode(event.target.value as ViewMode)}
+                    onChange={(event) =>
+                      setViewMode(event.target.value as ViewMode)
+                    }
                   >
                     <option value="range">Range</option>
                     <option value="cyclical">Cyclical</option>
@@ -312,7 +336,10 @@ export const MonovariateRoseDiagramPanel: React.FC<PanelProps> = () => {
                       setSidesInput(sanitizeIntegerInput(event.target.value))
                     }
                     onBlur={() => {
-                      const parsed = Math.max(1, Math.round(parseNumber(sidesInput, 8)));
+                      const parsed = Math.max(
+                        1,
+                        Math.round(parseNumber(sidesInput, 8)),
+                      );
                       setSidesInput(String(parsed));
                     }}
                   />

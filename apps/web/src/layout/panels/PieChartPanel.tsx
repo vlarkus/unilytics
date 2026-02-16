@@ -4,6 +4,14 @@ import { useRobotTelemetry } from "../use-robot-telemetry";
 
 export const pieChartPanelTags = ["chart", "pie", "visualization", "analysis"];
 type OrderMode = "set" | "frequency";
+type ColorMode = "custom" | "gradient";
+type GradientPreset =
+  | "rainbow"
+  | "traffic-light"
+  | "sunset"
+  | "ocean"
+  | "viridis"
+  | "cool-warm";
 
 interface ValueBucket {
   key: string;
@@ -27,22 +35,107 @@ const compareBucketByValue = (a: ValueBucket, b: ValueBucket) => {
   });
 };
 
+const HSL_MAX = 360;
+
+const hslToHex = (h: number, s: number, l: number) => {
+  const hh = ((h % HSL_MAX) + HSL_MAX) % HSL_MAX / HSL_MAX;
+  const ss = Math.max(0, Math.min(1, s));
+  const ll = Math.max(0, Math.min(1, l));
+  const hue2rgb = (p: number, q: number, t: number) => {
+    let tt = t;
+    if (tt < 0) tt += 1;
+    if (tt > 1) tt -= 1;
+    if (tt < 1 / 6) return p + (q - p) * 6 * tt;
+    if (tt < 1 / 2) return q;
+    if (tt < 2 / 3) return p + (q - p) * (2 / 3 - tt) * 6;
+    return p;
+  };
+
+  const q = ll < 0.5 ? ll * (1 + ss) : ll + ss - ll * ss;
+  const p = 2 * ll - q;
+  const r = hue2rgb(p, q, hh + 1 / 3);
+  const g = hue2rgb(p, q, hh);
+  const b = hue2rgb(p, q, hh - 1 / 3);
+
+  const toHex = (value: number) =>
+    Math.round(value * 255)
+      .toString(16)
+      .padStart(2, "0");
+
+  return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+};
+
+const hexToRgb = (hex: string): [number, number, number] => {
+  const normalized = hex.replace("#", "").trim();
+  if (!/^[0-9a-fA-F]{6}$/.test(normalized)) {
+    return [255, 255, 255];
+  }
+  const r = Number.parseInt(normalized.slice(0, 2), 16);
+  const g = Number.parseInt(normalized.slice(2, 4), 16);
+  const b = Number.parseInt(normalized.slice(4, 6), 16);
+  return [r, g, b];
+};
+
+const rgbToHex = (r: number, g: number, b: number) => {
+  const toHex = (value: number) =>
+    Math.round(Math.max(0, Math.min(255, value)))
+      .toString(16)
+      .padStart(2, "0");
+  return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+};
+
+const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
+
+const interpolateHex = (fromHex: string, toHex: string, t: number) => {
+  const [r1, g1, b1] = hexToRgb(fromHex);
+  const [r2, g2, b2] = hexToRgb(toHex);
+  return rgbToHex(lerp(r1, r2, t), lerp(g1, g2, t), lerp(b1, b2, t));
+};
+
 const colorFromKey = (key: string) => {
   let hash = 0;
   for (let i = 0; i < key.length; i += 1) {
     hash = (hash * 31 + key.charCodeAt(i)) >>> 0;
   }
-  const hue = hash % 360;
-  return `hsl(${hue} 75% 55%)`;
+  const hue = hash % HSL_MAX;
+  return hslToHex(hue, 0.75, 0.55);
 };
 
 const toValueKey = (value: unknown) => `${typeof value}:${String(value)}`;
+
+const GRADIENT_STOPS: Record<GradientPreset, string[]> = {
+  rainbow: ["#ff004d", "#ff8a00", "#ffe600", "#00d26a", "#00a6ff", "#8b5cf6"],
+  "traffic-light": ["#ef4444", "#f59e0b", "#22c55e"],
+  sunset: ["#ff5f6d", "#ffc371", "#ff8fab", "#8a4fff"],
+  ocean: ["#0ea5e9", "#06b6d4", "#14b8a6", "#22c55e"],
+  viridis: ["#440154", "#3b528b", "#21918c", "#5ec962", "#fde725"],
+  "cool-warm": ["#3b82f6", "#60a5fa", "#93c5fd", "#fca5a5", "#ef4444"],
+};
+
+const buildGradientPalette = (preset: GradientPreset, count: number) => {
+  if (count <= 0) return [] as string[];
+  if (count === 1) return [GRADIENT_STOPS[preset][0]];
+
+  const stops = GRADIENT_STOPS[preset];
+  const segmentCount = Math.max(1, stops.length - 1);
+
+  return Array.from({ length: count }, (_, index) => {
+    const t = count === 1 ? 0 : index / (count - 1);
+    const scaled = t * segmentCount;
+    const leftIndex = Math.min(Math.floor(scaled), segmentCount - 1);
+    const rightIndex = Math.min(leftIndex + 1, stops.length - 1);
+    const localT = scaled - leftIndex;
+    return interpolateHex(stops[leftIndex], stops[rightIndex], localT);
+  });
+};
 
 export const PieChartPanel: React.FC<PanelProps> = () => {
   const { telemetryColumns, telemetryRows, packetSelection } = useRobotTelemetry();
 
   const [selectedColumn, setSelectedColumn] = useState("");
   const [orderMode, setOrderMode] = useState<OrderMode>("set");
+  const [colorMode, setColorMode] = useState<ColorMode>("custom");
+  const [gradientPreset, setGradientPreset] = useState<GradientPreset>("rainbow");
   const [isFullScale, setIsFullScale] = useState(false);
   const [enabledMap, setEnabledMap] = useState<Record<string, boolean>>({});
   const [colorMap, setColorMap] = useState<Record<string, string>>({});
@@ -144,6 +237,15 @@ export const PieChartPanel: React.FC<PanelProps> = () => {
   const visibleCount = visibleBuckets.reduce((sum, bucket) => sum + bucket.count, 0);
   const totalCount = buckets.reduce((sum, bucket) => sum + bucket.count, 0);
 
+  const gradientColorMap = useMemo(() => {
+    const palette = buildGradientPalette(gradientPreset, orderedBuckets.length);
+    const next: Record<string, string> = {};
+    orderedBuckets.forEach((bucket, index) => {
+      next[bucket.key] = palette[index] ?? colorFromKey(bucket.key);
+    });
+    return next;
+  }, [gradientPreset, orderedBuckets]);
+
   const chartSize = 560;
   const center = chartSize / 2;
   const radius = 200;
@@ -176,13 +278,16 @@ export const PieChartPanel: React.FC<PanelProps> = () => {
       startAngle = endAngle;
       return {
         key: bucket.key,
-        color: colorMap[bucket.key] ?? colorFromKey(bucket.key),
+        color:
+          colorMode === "gradient"
+            ? (gradientColorMap[bucket.key] ?? colorFromKey(bucket.key))
+            : (colorMap[bucket.key] ?? colorFromKey(bucket.key)),
         path,
         count: bucket.count,
         label: bucket.label,
       };
     });
-  }, [center, colorMap, radius, visibleBuckets, visibleCount]);
+  }, [center, colorMap, colorMode, gradientColorMap, radius, visibleBuckets, visibleCount]);
 
   const chartCard = (
     <section className={`ui-card relative ${isFullScale ? "h-full" : ""}`}>
@@ -311,6 +416,44 @@ export const PieChartPanel: React.FC<PanelProps> = () => {
                   </select>
                 </div>
 
+                <div>
+                  <label className="ui-label" htmlFor="pie-color-mode">
+                    Color
+                  </label>
+                  <select
+                    id="pie-color-mode"
+                    className="ui-input"
+                    value={colorMode}
+                    onChange={(event) => setColorMode(event.target.value as ColorMode)}
+                  >
+                    <option value="custom">Custom</option>
+                    <option value="gradient">Gradient</option>
+                  </select>
+                </div>
+
+                {colorMode === "gradient" ? (
+                  <div>
+                    <label className="ui-label" htmlFor="pie-gradient-preset">
+                      Gradient Preset
+                    </label>
+                    <select
+                      id="pie-gradient-preset"
+                      className="ui-input"
+                      value={gradientPreset}
+                      onChange={(event) =>
+                        setGradientPreset(event.target.value as GradientPreset)
+                      }
+                    >
+                      <option value="rainbow">Rainbow</option>
+                      <option value="traffic-light">Traffic Light</option>
+                      <option value="sunset">Sunset</option>
+                      <option value="ocean">Ocean</option>
+                      <option value="viridis">Viridis</option>
+                      <option value="cool-warm">Cool Warm</option>
+                    </select>
+                  </div>
+                ) : null}
+
                 <div className="overflow-auto">
                   <table className="ui-table">
                     <thead>
@@ -369,25 +512,40 @@ export const PieChartPanel: React.FC<PanelProps> = () => {
                             <td>{bucket.label}</td>
                             <td>{bucket.count}</td>
                             <td>
-                              <input
-                                type="color"
-                                value={colorMap[bucket.key] ?? "#ffffff"}
-                                onChange={(event) =>
-                                  setColorMap((prev) => ({
-                                    ...prev,
-                                    [bucket.key]: event.target.value,
-                                  }))
-                                }
-                                title={`Color for ${bucket.label}`}
-                                style={{
-                                  width: "1.5rem",
-                                  height: "1.5rem",
-                                  padding: 0,
-                                  border: "1px solid hsl(var(--border))",
-                                  borderRadius: "4px",
-                                  background: "transparent",
-                                }}
-                              />
+                              {colorMode === "custom" ? (
+                                <input
+                                  type="color"
+                                  value={colorMap[bucket.key] ?? "#ffffff"}
+                                  onChange={(event) =>
+                                    setColorMap((prev) => ({
+                                      ...prev,
+                                      [bucket.key]: event.target.value,
+                                    }))
+                                  }
+                                  title={`Color for ${bucket.label}`}
+                                  style={{
+                                    width: "1.5rem",
+                                    height: "1.5rem",
+                                    padding: 0,
+                                    border: "1px solid hsl(var(--border))",
+                                    borderRadius: "4px",
+                                    background: "transparent",
+                                  }}
+                                />
+                              ) : (
+                                <span
+                                  title={`Gradient color for ${bucket.label}`}
+                                  style={{
+                                    display: "inline-block",
+                                    width: "1.5rem",
+                                    height: "1.5rem",
+                                    border: "1px solid hsl(var(--border))",
+                                    borderRadius: "4px",
+                                    background:
+                                      gradientColorMap[bucket.key] ?? colorFromKey(bucket.key),
+                                  }}
+                                />
+                              )}
                             </td>
                           </tr>
                         ))

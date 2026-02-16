@@ -27,16 +27,12 @@ export interface RobotTelemetrySnapshot {
   streamPaused: boolean;
 }
 
-const STORAGE_KEY = "adaptive.robotTelemetry.v1";
 const MAX_TELEMETRY_ROWS = 1000;
 
-interface PersistedTelemetryState {
-  ipAddress: string;
-  nextRowId: number;
-  telemetryColumns: string[];
-  telemetryRows: TelemetryRow[];
-  packetSelection: PacketSelection;
-  streamPaused: boolean;
+interface ImportTelemetryRow {
+  id?: number;
+  timestamp: number;
+  values: Record<string, TelemetryValue>;
 }
 
 class RobotTelemetryManager {
@@ -74,7 +70,6 @@ class RobotTelemetryManager {
   };
 
   constructor() {
-    this.loadPersistedState();
     this.rebuildSnapshot();
   }
 
@@ -91,7 +86,6 @@ class RobotTelemetryManager {
     const sanitized = ipAddress.replace(/[^0-9.]/g, "");
     if (sanitized === this.ipAddress) return;
     this.ipAddress = sanitized;
-    this.persistState();
     this.emit();
   };
 
@@ -105,7 +99,6 @@ class RobotTelemetryManager {
       startIndex: clampedStart,
       endIndex: nextEnd,
     };
-    this.persistState();
     this.emit();
   };
 
@@ -119,7 +112,6 @@ class RobotTelemetryManager {
       endIndex: clampedEnd,
       endFollowsLatest: false,
     };
-    this.persistState();
     this.emit();
   };
 
@@ -159,7 +151,6 @@ class RobotTelemetryManager {
       };
     }
 
-    this.persistState();
     this.emit();
   };
 
@@ -171,7 +162,6 @@ class RobotTelemetryManager {
     } else if (this.connectionStatus === "connected") {
       this.startMockStream();
     }
-    this.persistState();
     this.emit();
   };
 
@@ -243,8 +233,6 @@ class RobotTelemetryManager {
         ? nextRows.slice(nextRows.length - MAX_TELEMETRY_ROWS)
         : nextRows;
     this.reconcileSelectionWithRows();
-
-    this.persistState();
     this.emit();
   };
 
@@ -257,7 +245,96 @@ class RobotTelemetryManager {
       endIndex: 0,
       endFollowsLatest: true,
     };
-    this.persistState();
+    this.emit();
+  };
+
+  exportTelemetryCsv = () => {
+    const columns = [...this.telemetryColumns];
+    const header = ["id", "timestamp", ...columns];
+    const rows = this.telemetryRows.map((row) => {
+      const cells = [
+        String(row.id),
+        String(row.timestamp),
+        ...columns.map((column) => this.toCsvCell(row.values[column])),
+      ];
+      return cells.join(",");
+    });
+    return [header.join(","), ...rows].join("\n");
+  };
+
+  importTelemetryCsv = (csvText: string) => {
+    const lines = this.parseCsvLines(csvText);
+    if (lines.length < 2) {
+      throw new Error("CSV must include a header row and at least one data row.");
+    }
+
+    const header = lines[0].map((cell) => cell.trim());
+    const idIndex = header.findIndex((h) => h.toLowerCase() === "id");
+    const timestampIndex = header.findIndex((h) => h.toLowerCase() === "timestamp");
+    if (timestampIndex < 0) {
+      throw new Error("CSV header must include a timestamp column.");
+    }
+
+    const valueColumns = header
+      .map((column, index) => ({ column, index }))
+      .filter(
+        ({ index, column }) =>
+          index !== idIndex &&
+          index !== timestampIndex &&
+          column.length > 0,
+      );
+
+    const importedRows: ImportTelemetryRow[] = [];
+    for (let lineIndex = 1; lineIndex < lines.length; lineIndex += 1) {
+      const row = lines[lineIndex];
+      const timestampCell = row[timestampIndex];
+      const timestamp = Number(timestampCell);
+      if (!Number.isFinite(timestamp)) {
+        continue;
+      }
+
+      const values: Record<string, TelemetryValue> = {};
+      valueColumns.forEach(({ column, index }) => {
+        const raw = row[index] ?? "";
+        values[column] = this.parseTelemetryCell(raw);
+      });
+
+      const idCell = idIndex >= 0 ? row[idIndex] : undefined;
+      const id = idCell !== undefined && idCell !== "" ? Number(idCell) : undefined;
+      importedRows.push({
+        id: Number.isFinite(id) ? id : undefined,
+        timestamp,
+        values,
+      });
+    }
+
+    if (importedRows.length === 0) {
+      throw new Error("No valid packet rows found in CSV.");
+    }
+
+    this.replaceTelemetryRows(importedRows);
+    return { importedCount: importedRows.length };
+  };
+
+  private replaceTelemetryRows = (rows: ImportTelemetryRow[]) => {
+    const nextRows = rows.slice(-MAX_TELEMETRY_ROWS).map((row, index) => ({
+      id: row.id ?? index + 1,
+      timestamp: row.timestamp,
+      values: { ...row.values },
+    }));
+
+    const columnSet = new Set<string>();
+    nextRows.forEach((row) => {
+      Object.keys(row.values).forEach((column) => {
+        if (column.trim().length > 0) columnSet.add(column);
+      });
+    });
+
+    this.telemetryColumns = Array.from(columnSet);
+    this.telemetryRows = nextRows;
+    this.nextRowId =
+      (nextRows.reduce((maxId, row) => Math.max(maxId, row.id), 0) || 0) + 1;
+    this.reconcileSelectionWithRows();
     this.emit();
   };
 
@@ -375,73 +452,72 @@ class RobotTelemetryManager {
     this.connectTimer = null;
   };
 
-  private loadPersistedState = () => {
-    try {
-      const raw = window.localStorage.getItem(STORAGE_KEY);
-      if (!raw) return;
-
-      const parsed = JSON.parse(raw) as Partial<PersistedTelemetryState>;
-      if (typeof parsed.ipAddress === "string") {
-        this.ipAddress = parsed.ipAddress.replace(/[^0-9.]/g, "");
-      }
-      if (typeof parsed.nextRowId === "number" && parsed.nextRowId > 0) {
-        this.nextRowId = parsed.nextRowId;
-      }
-      if (Array.isArray(parsed.telemetryColumns)) {
-        this.telemetryColumns = parsed.telemetryColumns.filter(
-          (column): column is string => typeof column === "string" && column.length > 0,
-        );
-      }
-      if (Array.isArray(parsed.telemetryRows)) {
-        this.telemetryRows = parsed.telemetryRows
-          .filter(
-            (row): row is TelemetryRow =>
-              typeof row === "object" &&
-              row !== null &&
-              typeof row.id === "number" &&
-              typeof row.timestamp === "number" &&
-              typeof row.values === "object" &&
-              row.values !== null,
-          )
-          .slice(-MAX_TELEMETRY_ROWS);
-      }
-      if (parsed.packetSelection && typeof parsed.packetSelection === "object") {
-        const { startIndex, endIndex, endFollowsLatest } = parsed.packetSelection;
-        if (
-          typeof startIndex === "number" &&
-          typeof endIndex === "number" &&
-          typeof endFollowsLatest === "boolean"
-        ) {
-          this.packetSelection = {
-            startIndex: Math.max(0, Math.round(startIndex)),
-            endIndex: Math.max(0, Math.round(endIndex)),
-            endFollowsLatest,
-          };
-        }
-      }
-      if (typeof parsed.streamPaused === "boolean") {
-        this.streamPaused = parsed.streamPaused;
-      }
-      this.reconcileSelectionWithRows();
-    } catch {
-      // ignore corrupt persisted state
+  private toCsvCell = (value: TelemetryValue | undefined) => {
+    const raw = value === undefined ? "" : String(value);
+    if (raw.includes(",") || raw.includes("\"") || raw.includes("\n")) {
+      return `"${raw.replaceAll("\"", "\"\"")}"`;
     }
+    return raw;
   };
 
-  private persistState = () => {
-    const state: PersistedTelemetryState = {
-      ipAddress: this.ipAddress,
-      nextRowId: this.nextRowId,
-      telemetryColumns: this.telemetryColumns,
-      telemetryRows: this.telemetryRows,
-      packetSelection: this.packetSelection,
-      streamPaused: this.streamPaused,
-    };
-    try {
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-    } catch {
-      // localStorage can fail in private mode or quota cases
+  private parseTelemetryCell = (raw: string): TelemetryValue => {
+    const trimmed = raw.trim();
+    if (trimmed.toLowerCase() === "true") return true;
+    if (trimmed.toLowerCase() === "false") return false;
+    if (/^-?\d+(\.\d+)?$/.test(trimmed)) return Number(trimmed);
+    return raw;
+  };
+
+  private parseCsvLines = (csvText: string): string[][] => {
+    const rows: string[][] = [];
+    let row: string[] = [];
+    let cell = "";
+    let inQuotes = false;
+
+    for (let i = 0; i < csvText.length; i += 1) {
+      const char = csvText[i];
+      const next = csvText[i + 1];
+
+      if (char === "\"") {
+        if (inQuotes && next === "\"") {
+          cell += "\"";
+          i += 1;
+        } else {
+          inQuotes = !inQuotes;
+        }
+        continue;
+      }
+
+      if (!inQuotes && char === ",") {
+        row.push(cell);
+        cell = "";
+        continue;
+      }
+
+      if (!inQuotes && (char === "\n" || char === "\r")) {
+        if (char === "\r" && next === "\n") {
+          i += 1;
+        }
+        row.push(cell);
+        if (row.some((entry) => entry.length > 0)) {
+          rows.push(row);
+        }
+        row = [];
+        cell = "";
+        continue;
+      }
+
+      cell += char;
     }
+
+    if (cell.length > 0 || row.length > 0) {
+      row.push(cell);
+      if (row.some((entry) => entry.length > 0)) {
+        rows.push(row);
+      }
+    }
+
+    return rows;
   };
 }
 

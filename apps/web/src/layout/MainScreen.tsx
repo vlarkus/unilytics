@@ -6,9 +6,10 @@ import {
   Actions,
   DockLocation,
 } from "flexlayout-react";
-import { Settings, Plus, Search } from "lucide-react";
+import { Plus, Search, Save, FolderOpen } from "lucide-react";
 import "flexlayout-react/style/light.css";
 import { panelRegistry, defaultLayout } from "./PanelRegistry";
+import { robotTelemetryManager } from "./robot-telemetry-manager";
 import { WelcomePanel, welcomePanelTags } from "./panels/BuiltInPanels";
 import { StyleGuidePanel, styleGuidePanelTags } from "./panels/StyleGuidePanel";
 import {
@@ -24,9 +25,9 @@ import {
   packetSelectionPanelTags,
 } from "./panels/PacketSelectionPanel";
 import {
-  MonovariateRoseDiagramPanel,
-  monovariateRoseDiagramPanelTags,
-} from "./panels/MonovariateRoseDiagramPanel";
+  RoseDiagramPanel,
+  RoseDiagramPanelTags,
+} from "./panels/RoseDiagramPanel";
 import { PieChartPanel, pieChartPanelTags } from "./panels/PieChartPanel";
 import { TwoDGraphPanel, twoDGraphPanelTags } from "./panels/TwoDGraphPanel";
 
@@ -62,10 +63,10 @@ panelRegistry.register(
   packetSelectionPanelTags,
 );
 panelRegistry.register(
-  "MonovariateRoseDiagramPanel",
-  MonovariateRoseDiagramPanel,
+  "RoseDiagramPanel",
+  RoseDiagramPanel,
   "Rose Diagram",
-  monovariateRoseDiagramPanelTags,
+  RoseDiagramPanelTags,
 );
 panelRegistry.register(
   "PieChartPanel",
@@ -80,15 +81,12 @@ panelRegistry.register(
   twoDGraphPanelTags,
 );
 
-interface MainScreenProps {
-  onOpenSettings: () => void;
-}
-
-export const MainScreen: React.FC<MainScreenProps> = ({ onOpenSettings }) => {
+export const MainScreen: React.FC = () => {
   const [model] = useState(() => Model.fromJson(defaultLayout));
   const [isAddPanelOpen, setIsAddPanelOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const addPanelRef = useRef<HTMLDivElement>(null);
+  const openFileInputRef = useRef<HTMLInputElement>(null);
   const nextPanelId = useRef(0);
 
   // Close dropdown when clicking outside
@@ -161,6 +159,15 @@ export const MainScreen: React.FC<MainScreenProps> = ({ onOpenSettings }) => {
     setIsAddPanelOpen(false);
   };
 
+  const renameTabWithPrompt = (node: TabNode) => {
+    const currentName = node.getName() ?? "";
+    const nextName = window.prompt("Rename tab", currentName);
+    if (nextName === null) return;
+    const trimmedName = nextName.trim();
+    if (!trimmedName || trimmedName === currentName) return;
+    model.doAction(Actions.renameTab(node.getId(), trimmedName));
+  };
+
   const availablePanels = panelRegistry
     .getAvailablePanels()
     .filter(
@@ -172,17 +179,84 @@ export const MainScreen: React.FC<MainScreenProps> = ({ onOpenSettings }) => {
         ),
     );
 
+  const onSavePackets = () => {
+    const csv = robotTelemetryManager.exportTelemetryCsv();
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const dateStamp = new Date().toISOString().replaceAll(":", "-");
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `packets-${dateStamp}.csv`;
+    document.body.appendChild(anchor);
+    anchor.click();
+    document.body.removeChild(anchor);
+    URL.revokeObjectURL(url);
+  };
+
+  const onOpenPacketsClick = () => {
+    const shouldOpen = window.confirm(
+      "Open packet file? This will overwrite current packets.",
+    );
+    if (!shouldOpen) return;
+    openFileInputRef.current?.click();
+  };
+
+  const onOpenPacketsFileChange = async (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const text = await file.text();
+      const result = robotTelemetryManager.importTelemetryCsv(text);
+      window.alert(`Imported ${result.importedCount} packet rows.`);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unknown error";
+      window.alert(`Failed to open packet CSV: ${message}`);
+    } finally {
+      event.target.value = "";
+    }
+  };
+
   return (
     <div className="w-screen h-screen bg-background text-foreground flex flex-col">
       {/* Top Bar */}
       <div className="ui-topbar sticky top-0 z-50">
         <div className="flex items-center gap-3">
-          <span className="font-semibold text-lg tracking-tight">
-            Unilytics
-          </span>
+          <img
+            src="/logo.png"
+            alt="Logo"
+            className="h-7 w-auto select-none"
+            draggable={false}
+          />
         </div>
 
         <div className="flex items-center gap-2">
+          <button
+            className="ui-icon-btn"
+            onClick={onSavePackets}
+            title="Save Packets (CSV)"
+          >
+            <Save size={20} />
+          </button>
+
+          <button
+            className="ui-icon-btn"
+            onClick={onOpenPacketsClick}
+            title="Open Packets (CSV)"
+          >
+            <FolderOpen size={20} />
+          </button>
+
+          <input
+            ref={openFileInputRef}
+            type="file"
+            accept=".csv,text/csv"
+            className="hidden"
+            onChange={onOpenPacketsFileChange}
+          />
+
           {/* Add Panel Button & Dropdown */}
           <div className="relative" ref={addPanelRef}>
             <button
@@ -230,14 +304,6 @@ export const MainScreen: React.FC<MainScreenProps> = ({ onOpenSettings }) => {
             )}
           </div>
 
-          {/* Settings Button */}
-          <button
-            className="ui-icon-btn"
-            onClick={onOpenSettings}
-            title="Settings"
-          >
-            <Settings size={20} />
-          </button>
         </div>
       </div>
 
@@ -248,6 +314,24 @@ export const MainScreen: React.FC<MainScreenProps> = ({ onOpenSettings }) => {
             model={model}
             factory={factory}
             realtimeResize={true}
+            onRenderTab={(node, renderValues) => {
+              renderValues.content = (
+                <span
+                  onDoubleClick={(event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    renameTabWithPrompt(node);
+                  }}
+                >
+                  {renderValues.content}
+                </span>
+              );
+            }}
+            onAuxMouseClick={(node, event) => {
+              if (event.button !== 1) return;
+              if (!(node instanceof TabNode)) return;
+              model.doAction(Actions.deleteTab(node.getId()));
+            }}
             classNameMapper={(className) => className}
           />
         </div>
