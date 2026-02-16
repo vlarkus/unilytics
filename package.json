@@ -9,6 +9,8 @@
     "build:web": "pnpm --filter web build",
     "build:electron": "pnpm --filter web build && pnpm --filter electron-app build",
     "build:mobile": "pnpm --filter web build && pnpm --filter mobile-app sync",
+    "build:apk": "pnpm --filter mobile-app apk:debug",
+    "install:apk": "pnpm --filter mobile-app apk:install",
     "open:android": "pnpm --filter mobile-app open:android",
     "test": "echo \"Error: no test specified\" && exit 1"
   },

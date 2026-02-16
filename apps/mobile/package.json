@@ -6,7 +6,9 @@
         "build:web": "pnpm --filter web build",
         "sync": "cap sync",
         "open:android": "cap open android",
-        "build:android": "cap add android && cap sync && cap open android"
+        "build:android": "cap add android && cap sync && cap open android",
+        "apk:debug": "pnpm build:web && cap sync android && cd android && gradlew.bat assembleDebug",
+        "apk:install": "pnpm build:web && cap sync android && cd android && gradlew.bat installDebug"
     },
     "dependencies": {
         "@capacitor/core": "^7.0.1",
