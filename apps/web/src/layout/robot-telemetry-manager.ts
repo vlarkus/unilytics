@@ -24,6 +24,7 @@ export interface RobotTelemetrySnapshot {
   telemetryColumns: string[];
   telemetryRows: TelemetryRow[];
   packetSelection: PacketSelection;
+  streamPaused: boolean;
 }
 
 const STORAGE_KEY = "adaptive.robotTelemetry.v1";
@@ -35,6 +36,7 @@ interface PersistedTelemetryState {
   telemetryColumns: string[];
   telemetryRows: TelemetryRow[];
   packetSelection: PacketSelection;
+  streamPaused: boolean;
 }
 
 class RobotTelemetryManager {
@@ -60,12 +62,15 @@ class RobotTelemetryManager {
 
   private mockStreamTimer: number | null = null;
 
+  private streamPaused = false;
+
   private snapshot: RobotTelemetrySnapshot = {
     connectionStatus: this.connectionStatus,
     ipAddress: this.ipAddress,
     telemetryColumns: this.telemetryColumns,
     telemetryRows: this.telemetryRows,
     packetSelection: this.packetSelection,
+    streamPaused: this.streamPaused,
   };
 
   constructor() {
@@ -158,6 +163,22 @@ class RobotTelemetryManager {
     this.emit();
   };
 
+  setStreamPaused = (paused: boolean) => {
+    if (this.streamPaused === paused) return;
+    this.streamPaused = paused;
+    if (this.streamPaused) {
+      this.stopMockStream();
+    } else if (this.connectionStatus === "connected") {
+      this.startMockStream();
+    }
+    this.persistState();
+    this.emit();
+  };
+
+  toggleStreamPaused = () => {
+    this.setStreamPaused(!this.streamPaused);
+  };
+
   connect = () => {
     if (this.connectionStatus !== "disconnected") return;
 
@@ -167,7 +188,9 @@ class RobotTelemetryManager {
     this.clearConnectTimer();
     this.connectTimer = window.setTimeout(() => {
       this.connectionStatus = "connected";
-      this.startMockStream();
+      if (!this.streamPaused) {
+        this.startMockStream();
+      }
       this.emit();
     }, 700);
   };
@@ -177,6 +200,7 @@ class RobotTelemetryManager {
     this.stopMockStream();
     if (this.connectionStatus === "disconnected") return;
     this.connectionStatus = "disconnected";
+    this.streamPaused = false;
     this.emit();
   };
 
@@ -253,6 +277,7 @@ class RobotTelemetryManager {
         values: { ...row.values },
       })),
       packetSelection: { ...this.packetSelection },
+      streamPaused: this.streamPaused,
     };
   };
 
@@ -305,8 +330,8 @@ class RobotTelemetryManager {
   private createRandomTelemetryDatums = (timestamp: number): TelemetryDatum[] => {
     const phase = timestamp / 1000;
     const headingDeg = Number((Math.random() * 360).toFixed(2));
-    const xIn = Number((Math.random() * 144 - 72).toFixed(2));
-    const yIn = Number((Math.random() * 144 - 72).toFixed(2));
+    const xIn = Number((Math.sin(phase * 0.8) * 52 + Math.sin(phase * 0.17) * 12).toFixed(2));
+    const yIn = Number((Math.cos(phase * 0.65) * 54 + Math.cos(phase * 0.13) * 10).toFixed(2));
     const flywheelSpeedRpm = Math.round(Math.random() * 2000);
     const deflectorAngle = Number(Math.random().toFixed(3));
     const yawAngleDeg = Number((Math.random() * 540 - 270).toFixed(2));
@@ -394,6 +419,9 @@ class RobotTelemetryManager {
           };
         }
       }
+      if (typeof parsed.streamPaused === "boolean") {
+        this.streamPaused = parsed.streamPaused;
+      }
       this.reconcileSelectionWithRows();
     } catch {
       // ignore corrupt persisted state
@@ -407,6 +435,7 @@ class RobotTelemetryManager {
       telemetryColumns: this.telemetryColumns,
       telemetryRows: this.telemetryRows,
       packetSelection: this.packetSelection,
+      streamPaused: this.streamPaused,
     };
     try {
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));

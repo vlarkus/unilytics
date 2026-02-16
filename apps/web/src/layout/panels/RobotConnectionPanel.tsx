@@ -6,7 +6,7 @@ import { useRobotTelemetry } from "../use-robot-telemetry";
 export const robotConnectionPanelTags = ["network", "robot", "connection", "io"];
 
 export const RobotConnectionPanel: React.FC<PanelProps> = () => {
-  const { connectionStatus, ipAddress } = useRobotTelemetry();
+  const { connectionStatus, ipAddress, streamPaused } = useRobotTelemetry();
 
   const isConnecting = connectionStatus === "connecting";
   const isConnected = connectionStatus === "connected";
@@ -93,6 +93,27 @@ export const RobotConnectionPanel: React.FC<PanelProps> = () => {
               ) : null}
             </span>
           </button>
+          {isConnected ? (
+            <button
+              type="button"
+              className="ui-btn h-10 w-10 p-0 text-base"
+              onClick={robotTelemetryManager.toggleStreamPaused}
+              title={streamPaused ? "Resume packets" : "Pause packets"}
+              aria-label={streamPaused ? "Resume packets" : "Pause packets"}
+              style={{
+                backgroundColor: streamPaused
+                  ? "hsl(var(--success))"
+                  : "hsl(var(--warning))",
+                color: "#ffffff",
+                borderColor: "transparent",
+              }}
+            >
+              <i
+                className={`fa-solid ${streamPaused ? "fa-play" : "fa-pause"}`}
+                aria-hidden="true"
+              />
+            </button>
+          ) : null}
         </div>
       </div>
     </div>

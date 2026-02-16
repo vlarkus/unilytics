@@ -28,6 +28,7 @@ import {
   monovariateRoseDiagramPanelTags,
 } from "./panels/MonovariateRoseDiagramPanel";
 import { PieChartPanel, pieChartPanelTags } from "./panels/PieChartPanel";
+import { TwoDGraphPanel, twoDGraphPanelTags } from "./panels/TwoDGraphPanel";
 
 // Register built-in panels
 panelRegistry.register(
@@ -71,6 +72,12 @@ panelRegistry.register(
   PieChartPanel,
   "Pie Chart",
   pieChartPanelTags,
+);
+panelRegistry.register(
+  "TwoDGraphPanel",
+  TwoDGraphPanel,
+  "2D Graph",
+  twoDGraphPanelTags,
 );
 
 interface MainScreenProps {
