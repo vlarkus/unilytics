@@ -70,13 +70,6 @@ export const TelemetryTablePanel: React.FC<PanelProps> = () => {
   return (
     <div className="panel-content">
       <div className="panel-shell">
-        <header className="panel-header">
-          <h1 className="panel-title">Data Table</h1>
-          <p className="panel-subtitle">
-            Timestamped telemetry rows from the shared robot data manager.
-          </p>
-        </header>
-
         <section className="ui-card">
           <div className="mb-3 grid gap-2">
             <div className="text-sm text-muted-foreground">

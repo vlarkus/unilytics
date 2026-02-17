@@ -327,13 +327,6 @@ export const BoxPlotPanel: React.FC<PanelProps> = () => {
       <div className={`panel-shell ${isFullScale ? "h-full p-0 gap-0" : ""}`}>
         {!isFullScale ? (
           <>
-            <header className="panel-header">
-              <h1 className="panel-title">Box Plot</h1>
-              <p className="panel-subtitle">
-                Quartile and whisker summary for one numeric variable.
-              </p>
-            </header>
-
             {chartCard}
 
             <section className="ui-card">

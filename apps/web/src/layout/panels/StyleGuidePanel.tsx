@@ -96,15 +96,6 @@ export const StyleGuidePanel: React.FC<PanelProps> = () => {
   return (
     <div className="panel-content animate-in fade-in duration-300">
       <div className="panel-shell">
-        <header className="panel-header">
-          <h1 className="panel-title">UI Reference</h1>
-          <p className="panel-subtitle">
-            Shared styling playground. Tune tokens/classes in
-            `packages/shared/src/globals.css` and validate all component
-            families here.
-          </p>
-        </header>
-
         <section className="ui-grid-2">
           <div className="ui-card">
             <h2 className="ui-card-title">Buttons</h2>

@@ -276,13 +276,6 @@ export const HistogramPanel: React.FC<PanelProps> = () => {
       <div className={`panel-shell ${isFullScale ? "h-full p-0 gap-0" : ""}`}>
         {!isFullScale ? (
           <>
-            <header className="panel-header">
-              <h1 className="panel-title">Histogram</h1>
-              <p className="panel-subtitle">
-                Distribution of one numeric variable across the selected packet window.
-              </p>
-            </header>
-
             {chartCard}
 
             <section className="ui-card">

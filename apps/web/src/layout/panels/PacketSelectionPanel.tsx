@@ -1,15 +1,19 @@
 /* eslint-disable react-refresh/only-export-components */
 import React, { useEffect, useState } from "react";
+import { Hash, Film } from "lucide-react";
 import type { PanelProps } from "../PanelRegistry";
 import { robotTelemetryManager } from "../robot-telemetry-manager";
 import { useRobotTelemetry } from "../use-robot-telemetry";
+import { useVideoSyncSnapshot } from "../video-sync-manager";
 
 export const packetSelectionPanelTags = ["selection", "packets", "time-window", "analysis"];
 
 const digitsOnly = (value: string) => value.replace(/\D/g, "");
+type EndSelectionMode = "packet" | "latest" | "video";
 
 export const PacketSelectionPanel: React.FC<PanelProps> = () => {
   const { telemetryRows, telemetryColumns, packetSelection } = useRobotTelemetry();
+  const { selectedTime: selectedVideoTelemetryTime } = useVideoSyncSnapshot();
   const rowCount = telemetryRows.length;
   const maxIndex = Math.max(0, rowCount - 1);
 
@@ -26,6 +30,9 @@ export const PacketSelectionPanel: React.FC<PanelProps> = () => {
 
   const [startInput, setStartInput] = useState(String(startPacketNumber));
   const [endInput, setEndInput] = useState(String(endPacketNumber));
+  const [endMode, setEndMode] = useState<EndSelectionMode>(
+    endFollowsLatest ? "latest" : "packet",
+  );
 
   useEffect(() => {
     setStartInput(String(startPacketNumber));
@@ -34,6 +41,12 @@ export const PacketSelectionPanel: React.FC<PanelProps> = () => {
   useEffect(() => {
     setEndInput(String(endPacketNumber));
   }, [endPacketNumber]);
+
+  useEffect(() => {
+    if (endFollowsLatest) {
+      setEndMode("latest");
+    }
+  }, [endFollowsLatest]);
 
   const clampPacketNumber = (rawValue: string, fallback: number) => {
     const parsed = Number(rawValue);
@@ -53,9 +66,33 @@ export const PacketSelectionPanel: React.FC<PanelProps> = () => {
     robotTelemetryManager.setPacketSelectionEndByPacketNumber(clamped);
   };
 
+  const applyVideoEndSelection = () => {
+    if (rowCount === 0) return;
+    if (selectedVideoTelemetryTime === null || !Number.isFinite(selectedVideoTelemetryTime)) {
+      return;
+    }
+
+    let targetIndex = 0;
+    for (let i = 0; i < telemetryRows.length; i += 1) {
+      if (telemetryRows[i].timestamp <= selectedVideoTelemetryTime) {
+        targetIndex = i;
+      } else {
+        break;
+      }
+    }
+    robotTelemetryManager.setPacketSelectionEndByIndex(targetIndex);
+  };
+
+  useEffect(() => {
+    if (endMode !== "video") return;
+    applyVideoEndSelection();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [endMode, selectedVideoTelemetryTime, rowCount]);
+
   const startPercent = maxIndex > 0 ? (startIndex / maxIndex) * 100 : 0;
   const endPercent = maxIndex > 0 ? (endIndex / maxIndex) * 100 : 0;
-  const effectiveEndPercent = endFollowsLatest ? 100 : endPercent;
+  const endLocked = endMode !== "packet";
+  const effectiveEndPercent = endLocked ? 100 : endPercent;
   const activePacketCount = rowCount > 0 ? endIndex - startIndex + 1 : 0;
   const formatTimestamp = (timestamp: number | undefined) =>
     timestamp === undefined
@@ -73,13 +110,6 @@ export const PacketSelectionPanel: React.FC<PanelProps> = () => {
   return (
     <div className="panel-content">
       <div className="panel-shell">
-        <header className="panel-header">
-          <h1 className="panel-title">Select Packets</h1>
-          <p className="panel-subtitle">
-            Select active packets by packet number (ordered by telemetry time).
-          </p>
-        </header>
-
         <section className="ui-card">
           {rowCount === 0 ? (
             <div className="rounded-md border border-border bg-card p-4 text-sm text-muted-foreground">
@@ -121,7 +151,7 @@ export const PacketSelectionPanel: React.FC<PanelProps> = () => {
                       inputMode="numeric"
                       className="ui-input"
                       value={endInput}
-                      disabled={endFollowsLatest}
+                      disabled={endMode !== "packet"}
                       onChange={(event) => setEndInput(digitsOnly(event.target.value))}
                       onBlur={commitEndInput}
                       onKeyDown={(event) => {
@@ -131,29 +161,78 @@ export const PacketSelectionPanel: React.FC<PanelProps> = () => {
                         }
                       }}
                     />
-                    <button
-                      type="button"
-                      className="ui-btn h-10 w-10 p-0"
-                      aria-label="Follow latest finish packet"
-                      title="Follow latest finish packet"
-                      onClick={() =>
-                        robotTelemetryManager.setPacketSelectionFollowLatest(
-                          !endFollowsLatest,
-                        )
-                      }
-                      style={{
-                        backgroundColor: endFollowsLatest
-                          ? "hsl(var(--primary))"
-                          : "hsl(var(--secondary))",
-                        color: endFollowsLatest
-                          ? "hsl(var(--primary-foreground))"
-                          : "hsl(var(--secondary-foreground))",
-                        borderColor: "transparent",
-                        boxShadow: "none",
-                      }}
-                    >
-                      <i className="fa-solid fa-flag-checkered" aria-hidden="true" />
-                    </button>
+                    <div className="flex shrink-0 overflow-hidden rounded-md">
+                      <button
+                        type="button"
+                        className="ui-btn h-8 w-8 p-0 rounded-none border-0"
+                        aria-label="Select finish packet number"
+                        title="Select finish packet number"
+                        onClick={() => {
+                          setEndMode("packet");
+                          robotTelemetryManager.setPacketSelectionFollowLatest(false);
+                        }}
+                        style={{
+                          backgroundColor:
+                            endMode === "packet"
+                              ? "hsl(var(--primary))"
+                              : "hsl(var(--secondary))",
+                          color:
+                            endMode === "packet"
+                              ? "hsl(var(--primary-foreground))"
+                              : "hsl(var(--secondary-foreground))",
+                          boxShadow: "none",
+                        }}
+                      >
+                        <Hash size={16} />
+                      </button>
+                      <button
+                        type="button"
+                        className="ui-btn h-8 w-8 p-0 rounded-none border-0"
+                        aria-label="Follow latest finish packet"
+                        title="Follow latest finish packet"
+                        onClick={() => {
+                          setEndMode("latest");
+                          robotTelemetryManager.setPacketSelectionFollowLatest(true);
+                        }}
+                        style={{
+                          backgroundColor:
+                            endMode === "latest"
+                              ? "hsl(var(--primary))"
+                              : "hsl(var(--secondary))",
+                          color:
+                            endMode === "latest"
+                              ? "hsl(var(--primary-foreground))"
+                              : "hsl(var(--secondary-foreground))",
+                          boxShadow: "none",
+                        }}
+                      >
+                        <i className="fa-solid fa-flag-checkered" aria-hidden="true" />
+                      </button>
+                      <button
+                        type="button"
+                        className="ui-btn h-8 w-8 p-0 rounded-none border-0"
+                        aria-label="Set finish packet by current video time"
+                        title="Set finish packet by current video time"
+                        onClick={() => {
+                          setEndMode("video");
+                          robotTelemetryManager.setPacketSelectionFollowLatest(false);
+                          applyVideoEndSelection();
+                        }}
+                        style={{
+                          backgroundColor:
+                            endMode === "video"
+                              ? "hsl(var(--primary))"
+                              : "hsl(var(--secondary))",
+                          color:
+                            endMode === "video"
+                              ? "hsl(var(--primary-foreground))"
+                              : "hsl(var(--secondary-foreground))",
+                          boxShadow: "none",
+                        }}
+                      >
+                        <Film size={16} />
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -183,14 +262,14 @@ export const PacketSelectionPanel: React.FC<PanelProps> = () => {
                   />
                   <input
                     className={`ui-range-dual-input ui-range-dual-input-end ${
-                      endFollowsLatest ? "ui-range-dual-input-end-hidden" : ""
+                      endLocked ? "ui-range-dual-input-end-hidden" : ""
                     }`}
                     type="range"
                     min={0}
                     max={maxIndex}
                     step={1}
                     value={endIndex}
-                    disabled={endFollowsLatest}
+                    disabled={endLocked}
                     onChange={(event) =>
                       robotTelemetryManager.setPacketSelectionEndByIndex(
                         Number(event.target.value),
@@ -201,7 +280,13 @@ export const PacketSelectionPanel: React.FC<PanelProps> = () => {
 
                 <div className="flex items-center justify-between text-xs text-muted-foreground">
                   <span>Start: #{startPacketNumber}</span>
-                  <span>{endFollowsLatest ? "Finish: Latest" : `Finish: #${endPacketNumber}`}</span>
+                  <span>
+                    {endMode === "latest"
+                      ? "Finish: Latest"
+                      : endMode === "video"
+                        ? `Finish: Video (#${endPacketNumber})`
+                        : `Finish: #${endPacketNumber}`}
+                  </span>
                 </div>
 
                 <div className="text-xs text-muted-foreground">
@@ -238,7 +323,13 @@ export const PacketSelectionPanel: React.FC<PanelProps> = () => {
                     </tr>
                     <tr>
                       <td>Finish</td>
-                      <td>{endFollowsLatest ? "Latest" : endPacketNumber}</td>
+                      <td>
+                        {endMode === "latest"
+                          ? "Latest"
+                          : endMode === "video"
+                            ? `${endPacketNumber} (Video)`
+                            : endPacketNumber}
+                      </td>
                       <td>{formatTimestamp(endPacket?.timestamp)}</td>
                       <td>{endPacket?.id ?? "-"}</td>
                       {telemetryColumns.map((column) => (

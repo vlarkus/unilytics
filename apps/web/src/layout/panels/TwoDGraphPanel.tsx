@@ -250,13 +250,6 @@ export const TwoDGraphPanel: React.FC<PanelProps> = () => {
       <div className={`panel-shell ${isFullScale ? "h-full p-0 gap-0" : ""}`}>
         {!isFullScale ? (
           <>
-            <header className="panel-header">
-              <h1 className="panel-title">2D Graph</h1>
-              <p className="panel-subtitle">
-                Plot one numeric variable against another for the selected packet window.
-              </p>
-            </header>
-
             {chartCard}
 
             <section className="ui-card">

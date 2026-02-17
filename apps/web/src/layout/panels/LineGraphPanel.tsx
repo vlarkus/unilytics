@@ -236,13 +236,6 @@ export const LineGraphPanel: React.FC<PanelProps> = () => {
       <div className={`panel-shell ${isFullScale ? "h-full p-0 gap-0" : ""}`}>
         {!isFullScale ? (
           <>
-            <header className="panel-header">
-              <h1 className="panel-title">Line Graph</h1>
-              <p className="panel-subtitle">
-                Plot one variable over packet number or timestamp.
-              </p>
-            </header>
-
             {chartCard}
 
             <section className="ui-card">

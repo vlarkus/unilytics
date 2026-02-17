@@ -257,14 +257,6 @@ export const RoseDiagramPanel: React.FC<PanelProps> = () => {
       <div className={`panel-shell ${isFullScale ? "h-full p-0 gap-0" : ""}`}>
         {!isFullScale ? (
           <>
-            <header className="panel-header">
-              <h1 className="panel-title">Rose Diagram</h1>
-              <p className="panel-subtitle">
-                Plot one telemetry column directionally across a configurable
-                definition.
-              </p>
-            </header>
-
             <section className="ui-card">
               <div className="grid gap-3">
                 <div>

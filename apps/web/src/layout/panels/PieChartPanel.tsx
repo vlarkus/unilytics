@@ -382,13 +382,6 @@ export const PieChartPanel: React.FC<PanelProps> = () => {
       <div className={`panel-shell ${isFullScale ? "h-full p-0 gap-0" : ""}`}>
         {!isFullScale ? (
           <>
-            <header className="panel-header">
-              <h1 className="panel-title">Pie Chart</h1>
-              <p className="panel-subtitle">
-                Distribution of unique values for one telemetry column.
-              </p>
-            </header>
-
             {chartCard}
 
             <section className="ui-card">

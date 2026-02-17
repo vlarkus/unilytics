@@ -34,6 +34,8 @@ import { LineGraphPanel, lineGraphPanelTags } from "./panels/LineGraphPanel";
 import { HeatmapPanel, heatmapPanelTags } from "./panels/HeatmapPanel";
 import { BoxPlotPanel, boxPlotPanelTags } from "./panels/BoxPlotPanel";
 import { ViolinPlotPanel, violinPlotPanelTags } from "./panels/ViolinPlotPanel";
+import { VideoSyncPanel, videoSyncPanelTags } from "./panels/VideoSyncPanel";
+import { FilesPanel, filesPanelTags } from "./panels/FilesPanel";
 
 // Register built-in panels
 panelRegistry.register(
@@ -107,6 +109,18 @@ panelRegistry.register(
   ViolinPlotPanel,
   "Violin Plot",
   violinPlotPanelTags,
+);
+panelRegistry.register(
+  "VideoSyncPanel",
+  VideoSyncPanel,
+  "Video Sync",
+  videoSyncPanelTags,
+);
+panelRegistry.register(
+  "FilesPanel",
+  FilesPanel,
+  "Files",
+  filesPanelTags,
 );
 
 export const MainScreen: React.FC = () => {

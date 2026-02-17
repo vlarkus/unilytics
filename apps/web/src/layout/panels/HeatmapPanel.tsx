@@ -249,13 +249,6 @@ export const HeatmapPanel: React.FC<PanelProps> = () => {
       <div className={`panel-shell ${isFullScale ? "h-full p-0 gap-0" : ""}`}>
         {!isFullScale ? (
           <>
-            <header className="panel-header">
-              <h1 className="panel-title">Heatmap</h1>
-              <p className="panel-subtitle">
-                Density map for two variables with configurable box divisions.
-              </p>
-            </header>
-
             {chartCard}
 
             <section className="ui-card">

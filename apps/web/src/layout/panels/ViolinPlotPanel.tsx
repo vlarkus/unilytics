@@ -317,13 +317,6 @@ export const ViolinPlotPanel: React.FC<PanelProps> = () => {
       <div className={`panel-shell ${isFullScale ? "h-full p-0 gap-0" : ""}`}>
         {!isFullScale ? (
           <>
-            <header className="panel-header">
-              <h1 className="panel-title">Violin Plot</h1>
-              <p className="panel-subtitle">
-                Distribution shape for one numeric variable.
-              </p>
-            </header>
-
             {chartCard}
 
             <section className="ui-card">

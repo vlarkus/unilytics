@@ -320,6 +320,7 @@ body {
 }
 
 .flexlayout__tabset {
+  position: relative;
   background-color: hsl(var(--background)) !important;
   border: 1px solid hsl(var(--border)) !important;
   border-radius: var(--radius-lg) !important;
@@ -350,6 +351,41 @@ body {
 .flexlayout__tabset_tabbar_outer_top,
 .flexlayout__tabset_tabbar_outer_bottom {
   border: none !important;
+}
+
+.flexlayout__tabset_tabbar_outer.panel-tabstrip-collapsed {
+  position: absolute !important;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 35;
+  opacity: 0;
+  transform: translateY(calc(-100% + 8px));
+  transition: transform 0.16s ease, opacity 0.16s ease;
+}
+
+.flexlayout__tabset_tabbar_outer.panel-tabstrip-collapsed::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  height: 8px;
+}
+
+.flexlayout__tabset:hover .flexlayout__tabset_tabbar_outer.panel-tabstrip-collapsed,
+.flexlayout__tabset:focus-within .flexlayout__tabset_tabbar_outer.panel-tabstrip-collapsed {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.flexlayout__tabset:has(.flexlayout__tabset_tabbar_outer.panel-tabstrip-collapsed) > .flexlayout__tabset_header {
+  min-height: 0 !important;
+  border-bottom-width: 0 !important;
+}
+
+.flexlayout__tabset:has(.flexlayout__tabset_tabbar_outer.panel-tabstrip-collapsed) > .flexlayout__tabset_header .flexlayout__tabset_tabbar_outer {
+  margin: 0 !important;
 }
 
 .flexlayout__tabset_tabbar_inner_tab_container,

@@ -5,7 +5,7 @@
   "private": true,
   "scripts": {
     "dev": "concurrently \"pnpm --filter web dev\" \"pnpm --filter electron-app dev\"",
-    "dev:host": "concurrently \"pnpm --filter web dev:host\" \"pnpm --filter electron-app dev\"",
+    "dev:host": "concurrently \"pnpm --filter web dev:host\" \"pnpm --filter electron-app dev\" \"node dev-host-qr.cjs --wait --repeat 3 --interval 4000\"",
     "build:web": "pnpm --filter web build",
     "build:electron": "pnpm --filter web build && pnpm --filter electron-app build",
     "build:mobile": "pnpm --filter web build && pnpm --filter mobile-app sync",
@@ -19,6 +19,7 @@
   "license": "ISC",
   "packageManager": "pnpm@10.29.3",
   "devDependencies": {
-    "concurrently": "^9.1.2"
+    "concurrently": "^9.1.2",
+    "qrcode-terminal": "^0.12.0"
   }
 }
