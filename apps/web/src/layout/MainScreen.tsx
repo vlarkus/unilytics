@@ -36,6 +36,10 @@ import { BoxPlotPanel, boxPlotPanelTags } from "./panels/BoxPlotPanel";
 import { ViolinPlotPanel, violinPlotPanelTags } from "./panels/ViolinPlotPanel";
 import { VideoSyncPanel, videoSyncPanelTags } from "./panels/VideoSyncPanel";
 import { FilesPanel, filesPanelTags } from "./panels/FilesPanel";
+import {
+  HeadingVectorPanel,
+  headingVectorPanelTags,
+} from "./panels/HeadingVectorPanel";
 
 // Register built-in panels
 panelRegistry.register(
@@ -67,6 +71,12 @@ panelRegistry.register(
   RoseDiagramPanel,
   "Rose Diagram",
   RoseDiagramPanelTags,
+);
+panelRegistry.register(
+  "HeadingVectorPanel",
+  HeadingVectorPanel,
+  "Round Dial",
+  headingVectorPanelTags,
 );
 panelRegistry.register(
   "PieChartPanel",
@@ -122,6 +132,7 @@ panelRegistry.register(
   "Files",
   filesPanelTags,
 );
+
 
 export const MainScreen: React.FC = () => {
   const logoSrc = `${import.meta.env.BASE_URL}logo.png`;

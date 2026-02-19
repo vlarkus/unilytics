@@ -9,6 +9,8 @@ import {
   PACKET_NUMBER_KEY,
 } from "./numeric-variable-utils";
 
+import { SearchableSelect } from "../../components/SearchableSelect";
+
 export const twoDGraphPanelTags = ["chart", "2d", "graph", "visualization", "analysis"];
 
 type ScaleMode = "auto" | "manual";
@@ -47,6 +49,8 @@ export const TwoDGraphPanel: React.FC<PanelProps> = () => {
   const [fullScreenFitMode, setFullScreenFitMode] = useState<FullScreenFitMode>("fill");
 
   useEffect(() => {
+    if (telemetryColumns.length === 0) return;
+
     if (!variableOptions.some((option) => option.value === xVariable)) {
       queueMicrotask(() =>
         setXVariable(variableOptions[0]?.value ?? PACKET_NUMBER_KEY),
@@ -57,7 +61,7 @@ export const TwoDGraphPanel: React.FC<PanelProps> = () => {
         setYVariable(variableOptions[0]?.value ?? PACKET_NUMBER_KEY),
       );
     }
-  }, [variableOptions, xVariable, yVariable]);
+  }, [variableOptions, xVariable, yVariable, telemetryColumns]);
 
   const selectedEntries = useMemo(
     () => getSelectedRowEntries(telemetryRows, packetSelection),
@@ -259,35 +263,25 @@ export const TwoDGraphPanel: React.FC<PanelProps> = () => {
                     <label className="ui-label" htmlFor="graph-x-variable">
                       X Variable
                     </label>
-                    <select
+                    <SearchableSelect
                       id="graph-x-variable"
-                      className="ui-input"
                       value={xVariable}
-                      onChange={(event) => setXVariable(event.target.value)}
-                    >
-                      {variableOptions.map((option) => (
-                        <option key={`x-${option.value}`} value={option.value}>
-                          {option.label}
-                        </option>
-                      ))}
-                    </select>
+                      onChange={setXVariable}
+                      options={variableOptions}
+                      placeholder="Select X Variable"
+                    />
                   </div>
                   <div>
                     <label className="ui-label" htmlFor="graph-y-variable">
                       Y Variable
                     </label>
-                    <select
+                    <SearchableSelect
                       id="graph-y-variable"
-                      className="ui-input"
                       value={yVariable}
-                      onChange={(event) => setYVariable(event.target.value)}
-                    >
-                      {variableOptions.map((option) => (
-                        <option key={`y-${option.value}`} value={option.value}>
-                          {option.label}
-                        </option>
-                      ))}
-                    </select>
+                      onChange={setYVariable}
+                      options={variableOptions}
+                      placeholder="Select Y Variable"
+                    />
                   </div>
                 </div>
 

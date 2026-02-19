@@ -9,6 +9,8 @@ import {
   PACKET_NUMBER_KEY,
 } from "./numeric-variable-utils";
 
+import { SearchableSelect } from "../../components/SearchableSelect";
+
 export const heatmapPanelTags = ["chart", "heatmap", "grid", "analysis"];
 
 type ScaleMode = "auto" | "manual";
@@ -50,6 +52,8 @@ export const HeatmapPanel: React.FC<PanelProps> = () => {
   const [isFullScale, setIsFullScale] = useState(false);
 
   useEffect(() => {
+    if (telemetryColumns.length === 0) return;
+
     if (!variableOptions.some((option) => option.value === xVariable)) {
       queueMicrotask(() =>
         setXVariable(variableOptions[0]?.value ?? PACKET_NUMBER_KEY),
@@ -60,7 +64,7 @@ export const HeatmapPanel: React.FC<PanelProps> = () => {
         setYVariable(variableOptions[0]?.value ?? PACKET_NUMBER_KEY),
       );
     }
-  }, [variableOptions, xVariable, yVariable]);
+  }, [variableOptions, xVariable, yVariable, telemetryColumns]);
 
   const selectedEntries = useMemo(
     () => getSelectedRowEntries(telemetryRows, packetSelection),
@@ -258,35 +262,25 @@ export const HeatmapPanel: React.FC<PanelProps> = () => {
                     <label className="ui-label" htmlFor="heatmap-x-variable">
                       X Variable
                     </label>
-                    <select
+                    <SearchableSelect
                       id="heatmap-x-variable"
-                      className="ui-input"
                       value={xVariable}
-                      onChange={(event) => setXVariable(event.target.value)}
-                    >
-                      {variableOptions.map((option) => (
-                        <option key={`hx-${option.value}`} value={option.value}>
-                          {option.label}
-                        </option>
-                      ))}
-                    </select>
+                      onChange={setXVariable}
+                      options={variableOptions}
+                      placeholder="Select X Variable"
+                    />
                   </div>
                   <div>
                     <label className="ui-label" htmlFor="heatmap-y-variable">
                       Y Variable
                     </label>
-                    <select
+                    <SearchableSelect
                       id="heatmap-y-variable"
-                      className="ui-input"
                       value={yVariable}
-                      onChange={(event) => setYVariable(event.target.value)}
-                    >
-                      {variableOptions.map((option) => (
-                        <option key={`hy-${option.value}`} value={option.value}>
-                          {option.label}
-                        </option>
-                      ))}
-                    </select>
+                      onChange={setYVariable}
+                      options={variableOptions}
+                      placeholder="Select Y Variable"
+                    />
                   </div>
                 </div>
 

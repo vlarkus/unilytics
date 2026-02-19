@@ -39,7 +39,7 @@ interface ImportTelemetryRow {
 class RobotTelemetryManager {
   private connectionStatus: RobotConnectionStatus = "disconnected";
 
-  private ipAddress = "192.168.43.1";
+  private ipAddress = "192.168.43.1:12345";
 
   private connectionMessage: string | null = null;
 
@@ -59,7 +59,9 @@ class RobotTelemetryManager {
 
   private connectTimer: number | null = null;
 
-  private socket: WebSocket | null = null;
+  private pollingAbortController: AbortController | null = null;
+
+  private pollingTimer: number | null = null;
 
   private mockStreamTimer: number | null = null;
 
@@ -166,9 +168,16 @@ class RobotTelemetryManager {
     if (this.streamPaused === paused) return;
     this.streamPaused = paused;
     if (this.streamPaused) {
+      // Polling loop will see this flag and skip fetches, effectively pausing
       this.stopMockStream();
-    } else if (this.connectionStatus === "connected" && this.isDemoMode) {
-      this.startMockStream();
+    } else if (this.connectionStatus === "connected") {
+      if (this.isDemoMode) {
+        this.startMockStream();
+      } else {
+        // Resume polling immediately instead of waiting for next interval
+        const connectTarget = this.ipAddress.trim();
+        this.startPolling(connectTarget);
+      }
     }
     this.emit();
   };
@@ -205,13 +214,13 @@ class RobotTelemetryManager {
     }
 
     this.isDemoMode = false;
-    this.connectToRobotSocket(connectTarget);
+    this.startPolling(connectTarget);
   };
 
   disconnect = () => {
     this.clearConnectTimer();
     this.stopMockStream();
-    this.closeSocket();
+    this.stopPolling();
     this.isDemoMode = false;
     if (this.connectionStatus === "disconnected") return;
     this.connectionStatus = "disconnected";
@@ -431,92 +440,97 @@ class RobotTelemetryManager {
     }, 1000);
   };
 
-  private connectToRobotSocket = (connectTarget: string) => {
-    const socketUrl =
-      connectTarget.startsWith("ws://") || connectTarget.startsWith("wss://")
-        ? connectTarget
-        : `ws://${connectTarget}`;
+  private startPolling = (connectTarget: string) => {
+    this.stopPolling();
 
-    let socket: WebSocket;
-    try {
-      socket = new WebSocket(socketUrl);
-    } catch {
-      this.connectionStatus = "disconnected";
-      this.connectionMessage = `Unable to connect to ${connectTarget}.`;
-      this.emit();
-      return;
+    let url = connectTarget;
+    // Basic check for port: if it looks like an IP or hostname without a colon (IPV4)
+    // Note: IPv6 is complicated, but for FTC 192.168.43.1 is standard.
+    if (!url.includes(":")) {
+      url = `${url}:12345`;
+    }
+    if (!url.startsWith("http")) {
+      url = `http://${url}`;
     }
 
-    this.socket = socket;
-    let settled = false;
+    const endpoint = `${url}/telemetry`;
+    this.pollingAbortController = new AbortController();
+    const signal = this.pollingAbortController.signal;
 
-    const failConnect = (message: string) => {
-      if (settled) return;
-      settled = true;
-      this.clearConnectTimer();
-      if (this.socket === socket) {
-        this.socket = null;
-      }
-      if (this.connectionStatus === "connecting") {
-        this.connectionStatus = "disconnected";
-        this.connectionMessage = message;
-        this.emit();
-      }
-      socket.close();
-    };
+    const poll = async () => {
+      // If the parent controller is aborted, stop.
+      if (signal.aborted) return;
 
-    this.connectTimer = window.setTimeout(() => {
-      failConnect(`Connection timed out for ${connectTarget}.`);
-    }, 3000);
-
-    socket.onopen = () => {
-      if (settled) return;
-      settled = true;
-      this.clearConnectTimer();
-      this.connectionStatus = "connected";
-      this.connectionMessage = `Connected to ${connectTarget}.`;
-      this.emit();
-    };
-
-    socket.onerror = () => {
-      failConnect(`Failed to connect to ${connectTarget}.`);
-    };
-
-    socket.onclose = (event) => {
-      if (!settled) {
-        failConnect(`Failed to connect to ${connectTarget}.`);
+      if (this.streamPaused) {
+        // If paused, just check back in 500ms
+        this.pollingTimer = window.setTimeout(poll, 500);
         return;
       }
 
-      if (this.connectionStatus === "connected") {
-        this.closeSocket();
-        this.stopMockStream();
-        this.isDemoMode = false;
-        this.connectionStatus = "disconnected";
-        this.streamPaused = false;
-        this.connectionMessage = event.wasClean
-          ? "Connection closed."
-          : `Connection lost to ${connectTarget}.`;
-        this.emit();
+      try {
+        const fetchController = new AbortController();
+        const timeoutId = window.setTimeout(() => fetchController.abort(), 2000);
+
+        // Listen to the parent abort to cancel the child fetch too
+        const onAbort = () => fetchController.abort();
+        signal.addEventListener("abort", onAbort);
+
+        try {
+          const res = await fetch(endpoint, {
+            signal: fetchController.signal,
+            method: "GET",
+            // mode: "cors", // Default is cors
+          });
+          window.clearTimeout(timeoutId);
+
+          if (!res.ok) {
+            throw new Error(`HTTP ${res.status}`);
+          }
+
+          const text = await res.text();
+          const datums = this.toTelemetryDatums(text);
+          if (datums && datums.length > 0) {
+            this.addTelemetrySample(datums, Date.now());
+          }
+
+          if (this.connectionStatus !== "connected") {
+            this.connectionStatus = "connected";
+            this.connectionMessage = `Connected to ${connectTarget}`;
+            this.emit();
+          }
+        } finally {
+          signal.removeEventListener("abort", onAbort);
+          window.clearTimeout(timeoutId);
+        }
+
+      } catch (err: unknown) {
+        if (signal.aborted) return;
+
+        // If we were connected, stay connected but maybe log?
+        // If we are connecting, stay connecting.
+      }
+
+      if (!signal.aborted) {
+        // Poll at 20Hz (50ms)
+        this.pollingTimer = window.setTimeout(poll, 50);
       }
     };
 
-    socket.onmessage = (event) => {
-      const data = this.toTelemetryDatums(event.data);
-      if (!data || data.length === 0) return;
-      this.addTelemetrySample(data, Date.now());
-    };
+    poll();
   };
 
-  private closeSocket = () => {
-    if (!this.socket) return;
-    this.socket.onopen = null;
-    this.socket.onmessage = null;
-    this.socket.onerror = null;
-    this.socket.onclose = null;
-    this.socket.close();
-    this.socket = null;
+  private stopPolling = () => {
+    if (this.pollingAbortController) {
+      this.pollingAbortController.abort();
+      this.pollingAbortController = null;
+    }
+    if (this.pollingTimer !== null) {
+      window.clearTimeout(this.pollingTimer);
+      this.pollingTimer = null;
+    }
   };
+
+
 
   private toTelemetryDatums = (payload: unknown): TelemetryDatum[] | null => {
     if (typeof payload !== "string") {

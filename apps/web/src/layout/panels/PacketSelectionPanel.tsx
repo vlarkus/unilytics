@@ -1,6 +1,6 @@
 /* eslint-disable react-refresh/only-export-components */
 import React, { useEffect, useState } from "react";
-import { Hash, Film } from "lucide-react";
+import { Hash, Film, Flag } from "lucide-react";
 import type { PanelProps } from "../PanelRegistry";
 import { robotTelemetryManager } from "../robot-telemetry-manager";
 import { useRobotTelemetry } from "../use-robot-telemetry";
@@ -10,6 +10,7 @@ export const packetSelectionPanelTags = ["selection", "packets", "time-window", 
 
 const digitsOnly = (value: string) => value.replace(/\D/g, "");
 type EndSelectionMode = "packet" | "latest" | "video";
+type StartSelectionMode = "packet" | "start" | "video";
 
 export const PacketSelectionPanel: React.FC<PanelProps> = () => {
   const { telemetryRows, telemetryColumns, packetSelection } = useRobotTelemetry();
@@ -30,6 +31,7 @@ export const PacketSelectionPanel: React.FC<PanelProps> = () => {
 
   const [startInput, setStartInput] = useState(String(startPacketNumber));
   const [endInput, setEndInput] = useState(String(endPacketNumber));
+  const [startMode, setStartMode] = useState<StartSelectionMode>("packet");
   const [endMode, setEndMode] = useState<EndSelectionMode>(
     endFollowsLatest ? "latest" : "packet",
   );
@@ -66,6 +68,23 @@ export const PacketSelectionPanel: React.FC<PanelProps> = () => {
     robotTelemetryManager.setPacketSelectionEndByPacketNumber(clamped);
   };
 
+  const applyVideoStartSelection = () => {
+    if (rowCount === 0) return;
+    if (selectedVideoTelemetryTime === null || !Number.isFinite(selectedVideoTelemetryTime)) {
+      return;
+    }
+
+    let targetIndex = 0;
+    for (let i = 0; i < telemetryRows.length; i += 1) {
+      if (telemetryRows[i].timestamp <= selectedVideoTelemetryTime) {
+        targetIndex = i;
+      } else {
+        break;
+      }
+    }
+    robotTelemetryManager.setPacketSelectionStartByIndex(targetIndex);
+  };
+
   const applyVideoEndSelection = () => {
     if (rowCount === 0) return;
     if (selectedVideoTelemetryTime === null || !Number.isFinite(selectedVideoTelemetryTime)) {
@@ -84,6 +103,18 @@ export const PacketSelectionPanel: React.FC<PanelProps> = () => {
   };
 
   useEffect(() => {
+    if (startMode === "start") {
+      if (packetSelection.startIndex !== 0) {
+        robotTelemetryManager.setPacketSelectionStartByIndex(0);
+      }
+    }
+    if (startMode === "video") {
+      applyVideoStartSelection();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [startMode, selectedVideoTelemetryTime, rowCount, packetSelection.startIndex]);
+
+  useEffect(() => {
     if (endMode !== "video") return;
     applyVideoEndSelection();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -91,21 +122,23 @@ export const PacketSelectionPanel: React.FC<PanelProps> = () => {
 
   const startPercent = maxIndex > 0 ? (startIndex / maxIndex) * 100 : 0;
   const endPercent = maxIndex > 0 ? (endIndex / maxIndex) * 100 : 0;
+  const startLocked = startMode !== "packet";
   const endLocked = endMode !== "packet";
+  const effectiveStartPercent = startLocked ? 0 : startPercent;
   const effectiveEndPercent = endLocked ? 100 : endPercent;
   const activePacketCount = rowCount > 0 ? endIndex - startIndex + 1 : 0;
   const formatTimestamp = (timestamp: number | undefined) =>
     timestamp === undefined
       ? "-"
       : new Date(timestamp).toLocaleString([], {
-          hour12: false,
-          year: "numeric",
-          month: "2-digit",
-          day: "2-digit",
-          hour: "2-digit",
-          minute: "2-digit",
-          second: "2-digit",
-        });
+        hour12: false,
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+      });
 
   return (
     <div className="panel-content">
@@ -123,21 +156,94 @@ export const PacketSelectionPanel: React.FC<PanelProps> = () => {
                   <label className="ui-label" htmlFor="packet-start">
                     Start Packet
                   </label>
-                  <input
-                    id="packet-start"
-                    type="text"
-                    inputMode="numeric"
-                    className="ui-input"
-                    value={startInput}
-                    onChange={(event) => setStartInput(digitsOnly(event.target.value))}
-                    onBlur={commitStartInput}
-                    onKeyDown={(event) => {
-                      if (event.key === "Enter") {
-                        event.preventDefault();
-                        commitStartInput();
-                      }
-                    }}
-                  />
+                  <div className="flex items-center gap-2">
+                    <input
+                      id="packet-start"
+                      type="text"
+                      inputMode="numeric"
+                      className="ui-input"
+                      value={startInput}
+                      disabled={startMode !== "packet"}
+                      onChange={(event) => setStartInput(digitsOnly(event.target.value))}
+                      onBlur={commitStartInput}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter") {
+                          event.preventDefault();
+                          commitStartInput();
+                        }
+                      }}
+                    />
+                    <div className="flex shrink-0 overflow-hidden rounded-md">
+                      <button
+                        type="button"
+                        className="ui-btn h-8 w-8 p-0 rounded-none border-0"
+                        aria-label="Select start packet number"
+                        title="Select start packet number"
+                        onClick={() => {
+                          setStartMode("packet");
+                        }}
+                        style={{
+                          backgroundColor:
+                            startMode === "packet"
+                              ? "hsl(var(--primary))"
+                              : "hsl(var(--secondary))",
+                          color:
+                            startMode === "packet"
+                              ? "hsl(var(--primary-foreground))"
+                              : "hsl(var(--secondary-foreground))",
+                          boxShadow: "none",
+                        }}
+                      >
+                        <Hash size={16} />
+                      </button>
+                      <button
+                        type="button"
+                        className="ui-btn h-8 w-8 p-0 rounded-none border-0"
+                        aria-label="Start from beginning"
+                        title="Start from beginning"
+                        onClick={() => {
+                          setStartMode("start");
+                          robotTelemetryManager.setPacketSelectionStartByIndex(0);
+                        }}
+                        style={{
+                          backgroundColor:
+                            startMode === "start"
+                              ? "hsl(var(--primary))"
+                              : "hsl(var(--secondary))",
+                          color:
+                            startMode === "start"
+                              ? "hsl(var(--primary-foreground))"
+                              : "hsl(var(--secondary-foreground))",
+                          boxShadow: "none",
+                        }}
+                      >
+                        <Flag size={16} />
+                      </button>
+                      <button
+                        type="button"
+                        className="ui-btn h-8 w-8 p-0 rounded-none border-0"
+                        aria-label="Set start packet by current video time"
+                        title="Set start packet by current video time"
+                        onClick={() => {
+                          setStartMode("video");
+                          applyVideoStartSelection();
+                        }}
+                        style={{
+                          backgroundColor:
+                            startMode === "video"
+                              ? "hsl(var(--primary))"
+                              : "hsl(var(--secondary))",
+                          color:
+                            startMode === "video"
+                              ? "hsl(var(--primary-foreground))"
+                              : "hsl(var(--secondary-foreground))",
+                          boxShadow: "none",
+                        }}
+                      >
+                        <Film size={16} />
+                      </button>
+                    </div>
+                  </div>
                 </div>
 
                 <div>
@@ -243,17 +349,19 @@ export const PacketSelectionPanel: React.FC<PanelProps> = () => {
                   <div
                     className="ui-range-dual-range"
                     style={{
-                      left: `${startPercent}%`,
-                      width: `${Math.max(effectiveEndPercent - startPercent, 0)}%`,
+                      left: `${effectiveStartPercent}%`,
+                      width: `${Math.max(effectiveEndPercent - effectiveStartPercent, 0)}%`,
                     }}
                   />
                   <input
-                    className="ui-range-dual-input ui-range-dual-input-start"
+                    className={`ui-range-dual-input ui-range-dual-input-start ${startLocked ? "hidden" : ""
+                      }`}
                     type="range"
                     min={0}
                     max={maxIndex}
                     step={1}
                     value={startIndex}
+                    disabled={startLocked}
                     onChange={(event) =>
                       robotTelemetryManager.setPacketSelectionStartByIndex(
                         Number(event.target.value),
@@ -261,9 +369,8 @@ export const PacketSelectionPanel: React.FC<PanelProps> = () => {
                     }
                   />
                   <input
-                    className={`ui-range-dual-input ui-range-dual-input-end ${
-                      endLocked ? "ui-range-dual-input-end-hidden" : ""
-                    }`}
+                    className={`ui-range-dual-input ui-range-dual-input-end ${endLocked ? "ui-range-dual-input-end-hidden" : ""
+                      }`}
                     type="range"
                     min={0}
                     max={maxIndex}
@@ -279,7 +386,13 @@ export const PacketSelectionPanel: React.FC<PanelProps> = () => {
                 </div>
 
                 <div className="flex items-center justify-between text-xs text-muted-foreground">
-                  <span>Start: #{startPacketNumber}</span>
+                  <span>
+                    {startMode === "start"
+                      ? "Start: Start"
+                      : startMode === "video"
+                        ? `Start: Video (#${startPacketNumber})`
+                        : `Start: #${startPacketNumber}`}
+                  </span>
                   <span>
                     {endMode === "latest"
                       ? "Finish: Latest"
@@ -310,7 +423,13 @@ export const PacketSelectionPanel: React.FC<PanelProps> = () => {
                   <tbody>
                     <tr>
                       <td>Start</td>
-                      <td>{startPacketNumber}</td>
+                      <td>
+                        {startMode === "start"
+                          ? "Start"
+                          : startMode === "video"
+                            ? `${startPacketNumber} (Video)`
+                            : startPacketNumber}
+                      </td>
                       <td>{formatTimestamp(startPacket?.timestamp)}</td>
                       <td>{startPacket?.id ?? "-"}</td>
                       {telemetryColumns.map((column) => (

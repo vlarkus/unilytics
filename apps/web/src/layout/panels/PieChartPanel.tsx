@@ -2,6 +2,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import type { PanelProps } from "../PanelRegistry";
 import { useRobotTelemetry } from "../use-robot-telemetry";
+import { SearchableSelect } from "../../components/SearchableSelect";
 
 export const pieChartPanelTags = ["chart", "pie", "visualization", "analysis"];
 type OrderMode = "set" | "frequency";
@@ -144,7 +145,6 @@ export const PieChartPanel: React.FC<PanelProps> = () => {
 
   useEffect(() => {
     if (telemetryColumns.length === 0) {
-      queueMicrotask(() => setSelectedColumn(""));
       return;
     }
     if (!telemetryColumns.includes(selectedColumn)) {
@@ -390,22 +390,17 @@ export const PieChartPanel: React.FC<PanelProps> = () => {
                   <label className="ui-label" htmlFor="pie-column">
                     Data Column
                   </label>
-                  <select
+                  <SearchableSelect
                     id="pie-column"
-                    className="ui-input"
                     value={selectedColumn}
-                    onChange={(event) => setSelectedColumn(event.target.value)}
-                  >
-                    {telemetryColumns.length === 0 ? (
-                      <option value="">No telemetry columns yet</option>
-                    ) : (
-                      telemetryColumns.map((column) => (
-                        <option key={column} value={column}>
-                          {column}
-                        </option>
-                      ))
-                    )}
-                  </select>
+                    onChange={setSelectedColumn}
+                    options={
+                      telemetryColumns.length === 0
+                        ? []
+                        : telemetryColumns.map((col) => ({ value: col, label: col }))
+                    }
+                    placeholder="Select Data Column"
+                  />
                 </div>
 
                 <div>

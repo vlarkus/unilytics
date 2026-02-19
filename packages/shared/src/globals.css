@@ -379,12 +379,12 @@ body {
   transform: translateY(0);
 }
 
-.flexlayout__tabset:has(.flexlayout__tabset_tabbar_outer.panel-tabstrip-collapsed) > .flexlayout__tabset_header {
+.flexlayout__tabset:has(.flexlayout__tabset_tabbar_outer.panel-tabstrip-collapsed)>.flexlayout__tabset_header {
   min-height: 0 !important;
   border-bottom-width: 0 !important;
 }
 
-.flexlayout__tabset:has(.flexlayout__tabset_tabbar_outer.panel-tabstrip-collapsed) > .flexlayout__tabset_header .flexlayout__tabset_tabbar_outer {
+.flexlayout__tabset:has(.flexlayout__tabset_tabbar_outer.panel-tabstrip-collapsed)>.flexlayout__tabset_header .flexlayout__tabset_tabbar_outer {
   margin: 0 !important;
 }
 
@@ -433,7 +433,7 @@ body {
   font-size: 0 !important;
 }
 
-.flexlayout__tab_button_stamp > * {
+.flexlayout__tab_button_stamp>* {
   display: none !important;
 }
 
@@ -598,7 +598,7 @@ body {
     text-align: left;
   }
 
-  .panel-shell > * {
+  .panel-shell>* {
     width: 100%;
   }
 
@@ -1107,37 +1107,40 @@ body {
     from {
       background-position: 0 50%;
     }
+
     to {
       background-position: 560px 50%;
     }
   }
 
   .ui-rainbow-text {
-    background-image: repeating-linear-gradient(
-      80deg,
-      /* Cycle 1 */
-      #ff0000 0px,
-      #ff7a00 40px,
-      #ffd400 80px,
-      #4cd137 120px,
-      #00c6ff 160px,
-      #2f6bff 200px,
-      #8e44ad 240px,
-      #ff0000 280px,
-      /* Cycle 2 */
-      #ff7a00 320px,
-      #ffd400 360px,
-      #4cd137 400px,
-      #00c6ff 440px,
-      #2f6bff 480px,
-      #8e44ad 520px,
-      #ff0000 560px
-    );
+    background-image: repeating-linear-gradient(80deg,
+        /* Cycle 1 */
+        #ff0000 0px,
+        #ff7a00 40px,
+        #ffd400 80px,
+        #4cd137 120px,
+        #00c6ff 160px,
+        #2f6bff 200px,
+        #8e44ad 240px,
+        #ff0000 280px,
+        /* Cycle 2 */
+        #ff7a00 320px,
+        #ffd400 360px,
+        #4cd137 400px,
+        #00c6ff 440px,
+        #2f6bff 480px,
+        #8e44ad 520px,
+        #ff0000 560px);
     background-size: 560px 100%;
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
     color: transparent;
     animation: ui-rainbow-shift 10s linear infinite;
+  }
+
+  .ui-range-dual-input-start-hidden::-webkit-slider-thumb {
+    display: none;
   }
 }

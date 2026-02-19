@@ -39,7 +39,7 @@ export const RobotConnectionPanel: React.FC<PanelProps> = () => {
             className="ui-input flex-1 max-w-30 min-w-30"
             inputMode="text"
             autoComplete="off"
-            placeholder="192.168.43.1"
+            placeholder="192.168.43.1:12345"
             value={ipAddress}
             onChange={(e) => robotTelemetryManager.setIpAddress(e.target.value)}
             style={{

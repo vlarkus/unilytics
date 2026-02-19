@@ -10,6 +10,8 @@ import {
   TIMESTAMP_KEY,
 } from "./numeric-variable-utils";
 
+import { SearchableSelect } from "../../components/SearchableSelect";
+
 export const lineGraphPanelTags = ["chart", "line", "timeseries", "analysis"];
 
 type ScaleMode = "auto" | "manual";
@@ -46,12 +48,14 @@ export const LineGraphPanel: React.FC<PanelProps> = () => {
   const [fullScreenFitMode, setFullScreenFitMode] = useState<FullScreenFitMode>("fill");
 
   useEffect(() => {
+    if (telemetryColumns.length === 0) return;
+
     if (!variableOptions.some((option) => option.value === yVariable)) {
       queueMicrotask(() =>
         setYVariable(variableOptions[0]?.value ?? PACKET_NUMBER_KEY),
       );
     }
-  }, [variableOptions, yVariable]);
+  }, [variableOptions, yVariable, telemetryColumns]);
 
   const selectedEntries = useMemo(
     () => getSelectedRowEntries(telemetryRows, packetSelection),
@@ -180,16 +184,16 @@ export const LineGraphPanel: React.FC<PanelProps> = () => {
 
             {showPoints
               ? visiblePoints.map((point, index) => (
-                  <circle
-                    key={`${point.x}-${point.y}-${index}`}
-                    cx={toSvgX(point.x)}
-                    cy={toSvgY(point.y)}
-                    r={2.4}
-                    fill="hsl(var(--primary))"
-                  >
-                    <title>{`X: ${point.x.toFixed(4)}, Y: ${point.y.toFixed(4)}`}</title>
-                  </circle>
-                ))
+                <circle
+                  key={`${point.x}-${point.y}-${index}`}
+                  cx={toSvgX(point.x)}
+                  cy={toSvgY(point.y)}
+                  r={2.4}
+                  fill="hsl(var(--primary))"
+                >
+                  <title>{`X: ${point.x.toFixed(4)}, Y: ${point.y.toFixed(4)}`}</title>
+                </circle>
+              ))
               : null}
 
             {!isStretchFill ? (
@@ -259,18 +263,13 @@ export const LineGraphPanel: React.FC<PanelProps> = () => {
                     <label className="ui-label" htmlFor="line-y-variable">
                       Y Variable
                     </label>
-                    <select
+                    <SearchableSelect
                       id="line-y-variable"
-                      className="ui-input"
                       value={yVariable}
-                      onChange={(event) => setYVariable(event.target.value)}
-                    >
-                      {variableOptions.map((option) => (
-                        <option key={option.value} value={option.value}>
-                          {option.label}
-                        </option>
-                      ))}
-                    </select>
+                      onChange={setYVariable}
+                      options={variableOptions}
+                      placeholder="Select Y Variable"
+                    />
                   </div>
                 </div>
 

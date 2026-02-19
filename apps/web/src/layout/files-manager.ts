@@ -8,6 +8,14 @@ export interface VideoFileRecord {
   objectUrl: string;
   createdAt: number;
   durationSeconds: number | null;
+  syncData: {
+    offset: number;
+    anchor: {
+      mode: "beginning" | "segment";
+      telemetryTimestamp: number;
+      videoSecond: number;
+    };
+  } | null;
 }
 
 interface FilesSnapshot {
@@ -44,6 +52,7 @@ class FilesManager {
       objectUrl: URL.createObjectURL(file),
       createdAt: Date.now(),
       durationSeconds: null,
+      syncData: null,
     };
     this.videos = [...this.videos, record];
     this.emit();
@@ -70,6 +79,26 @@ class FilesManager {
     this.videos = this.videos.map((video) =>
       video.id === videoId
         ? { ...video, durationSeconds }
+        : video,
+    );
+    this.emit();
+  };
+
+  updateVideoSyncData = (
+    videoId: string,
+    offset: number,
+    anchor: {
+      mode: "beginning" | "segment";
+      telemetryTimestamp: number;
+      videoSecond: number;
+    },
+  ) => {
+    this.videos = this.videos.map((video) =>
+      video.id === videoId
+        ? {
+          ...video,
+          syncData: { offset, anchor },
+        }
         : video,
     );
     this.emit();

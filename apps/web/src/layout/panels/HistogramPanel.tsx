@@ -9,6 +9,8 @@ import {
   PACKET_NUMBER_KEY,
 } from "./numeric-variable-utils";
 
+import { SearchableSelect } from "../../components/SearchableSelect";
+
 export const histogramPanelTags = ["chart", "histogram", "distribution", "analysis"];
 
 type RangeMode = "auto" | "manual";
@@ -54,13 +56,15 @@ export const HistogramPanel: React.FC<PanelProps> = () => {
   const [fullScreenFitMode, setFullScreenFitMode] = useState<FullScreenFitMode>("fill");
 
   useEffect(() => {
+    if (telemetryColumns.length === 0) return;
+
     const hasSelection = variableOptions.some((option) => option.value === selectedVariable);
     if (!hasSelection) {
       queueMicrotask(() =>
         setSelectedVariable(variableOptions[0]?.value ?? PACKET_NUMBER_KEY),
       );
     }
-  }, [selectedVariable, variableOptions]);
+  }, [selectedVariable, variableOptions, telemetryColumns]);
 
   const selectedEntries = useMemo(
     () => getSelectedRowEntries(telemetryRows, packetSelection),
@@ -281,21 +285,18 @@ export const HistogramPanel: React.FC<PanelProps> = () => {
             <section className="ui-card">
               <div className="grid gap-3">
                 <div>
-                  <label className="ui-label" htmlFor="histogram-variable">
-                    Variable
-                  </label>
-                  <select
-                    id="histogram-variable"
-                    className="ui-input"
-                    value={selectedVariable}
-                    onChange={(event) => setSelectedVariable(event.target.value)}
-                  >
-                    {variableOptions.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
+                  <div>
+                    <label className="ui-label" htmlFor="histogram-variable">
+                      Variable
+                    </label>
+                    <SearchableSelect
+                      id="histogram-variable"
+                      value={selectedVariable}
+                      onChange={setSelectedVariable}
+                      options={variableOptions}
+                      placeholder="Select Variable"
+                    />
+                  </div>
                 </div>
 
                 <div className="grid gap-3 md:grid-cols-2">

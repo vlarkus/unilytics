@@ -221,6 +221,11 @@ export const VideoSyncPanel: React.FC<PanelProps> = ({ node }) => {
     }
   }, []);
 
+  // Keep a ref to the current scale to avoid re-creating the resize handler
+  // on every frame during a drag (since setViewportScale triggers re-render).
+  const viewportScaleRef = useRef(viewportScale);
+  viewportScaleRef.current = viewportScale;
+
   const beginViewportResize = useCallback(
     (event: React.PointerEvent<HTMLElement>) => {
       event.preventDefault();
@@ -228,7 +233,7 @@ export const VideoSyncPanel: React.FC<PanelProps> = ({ node }) => {
       resizeSessionRef.current = {
         startX: event.clientX,
         startY: event.clientY,
-        startScale: viewportScale,
+        startScale: viewportScaleRef.current,
       };
 
       const onPointerMove = (moveEvent: PointerEvent) => {
@@ -259,7 +264,7 @@ export const VideoSyncPanel: React.FC<PanelProps> = ({ node }) => {
       window.addEventListener("pointerup", onPointerUp);
       window.addEventListener("pointercancel", onPointerUp);
     },
-    [viewportScale],
+    [],
   );
 
   const publishVideoTelemetryTime = useCallback(
@@ -437,9 +442,26 @@ export const VideoSyncPanel: React.FC<PanelProps> = ({ node }) => {
 
   const packetCount = telemetryRows.length;
 
-  const switchToVideo = (videoId: string) => {
+  const switchToVideo = (videoId: string, forceResync = false) => {
     setCurrentVideoId(videoId);
     setIsReplaceMenuOpen(false);
+
+    // Check if we have persisted sync data for this video, unless forcing a resync
+    const videoRecord = filesManager.getVideoById(videoId);
+    if (!forceResync && videoRecord?.syncData) {
+      setOffset(videoRecord.syncData.offset);
+      setSyncAnchor(videoRecord.syncData.anchor);
+      setSyncMode(videoRecord.syncData.anchor.mode);
+      setVideoSecondInput(String(videoRecord.syncData.anchor.videoSecond));
+      setSyncError(null);
+      // We keep existing playback state stops
+      setVideoCurrentTime(0);
+      setVideoDuration(videoRecord.durationSeconds || 0); // Optimistically use cached duration
+      setIsPlaying(false);
+      stopPlaybackLoop();
+      return; // Skip default reset logic if we loaded sync data
+    }
+
     setSyncMode("beginning");
     setOffset(null);
     setSyncAnchor(null);
@@ -466,17 +488,17 @@ export const VideoSyncPanel: React.FC<PanelProps> = ({ node }) => {
       telemetryRows.length === 0
         ? 1
         : Math.max(
-            1,
-            telemetryRows.reduce((closestIndex, row, index) => {
-              const closestDistance = Math.abs(
-                telemetryRows[closestIndex].timestamp - defaultTimestamp,
-              );
-              const currentDistance = Math.abs(
-                row.timestamp - defaultTimestamp,
-              );
-              return currentDistance < closestDistance ? index : closestIndex;
-            }, 0) + 1,
-          );
+          1,
+          telemetryRows.reduce((closestIndex, row, index) => {
+            const closestDistance = Math.abs(
+              telemetryRows[closestIndex].timestamp - defaultTimestamp,
+            );
+            const currentDistance = Math.abs(
+              row.timestamp - defaultTimestamp,
+            );
+            return currentDistance < closestDistance ? index : closestIndex;
+          }, 0) + 1,
+        );
     setPacketNumberInput(String(nearestPacketNumber));
   };
 
@@ -484,19 +506,19 @@ export const VideoSyncPanel: React.FC<PanelProps> = ({ node }) => {
     const telemetryTimestamp =
       telemetryTargetMode === "packet"
         ? (() => {
-            const packetNumber = parseIntegerInput(packetNumberInput);
-            if (packetNumber === null) return null;
-            if (telemetryRows.length === 0) return null;
-            const index = clamp(packetNumber - 1, 0, telemetryRows.length - 1);
-            return telemetryRows[index]?.timestamp ?? null;
-          })()
+          const packetNumber = parseIntegerInput(packetNumberInput);
+          if (packetNumber === null) return null;
+          if (telemetryRows.length === 0) return null;
+          const index = clamp(packetNumber - 1, 0, telemetryRows.length - 1);
+          return telemetryRows[index]?.timestamp ?? null;
+        })()
         : buildTimestampFromParts(
-            telemetryDateInput,
-            telemetryHourInput,
-            telemetryMinuteInput,
-            telemetrySecondInput,
-            telemetryMillisecondInput,
-          );
+          telemetryDateInput,
+          telemetryHourInput,
+          telemetryMinuteInput,
+          telemetrySecondInput,
+          telemetryMillisecondInput,
+        );
 
     if (telemetryTimestamp === null) {
       setSyncError(
@@ -551,13 +573,19 @@ export const VideoSyncPanel: React.FC<PanelProps> = ({ node }) => {
     const nextOffset = telemetryTimestamp - normalizedVideoSecond * 1000;
 
     setOffset(nextOffset);
-    setSyncAnchor({
+    const newAnchor = {
       mode: syncMode,
       telemetryTimestamp,
       videoSecond: normalizedVideoSecond,
-    });
+    };
+    setSyncAnchor(newAnchor);
     setVideoSecondInput(String(normalizedVideoSecond));
     setSyncError(null);
+
+    // Persist sync settings to the file record
+    if (currentVideoId) {
+      filesManager.updateVideoSyncData(currentVideoId, nextOffset, newAnchor);
+    }
   };
 
   const seekToNextPacket = () => {
@@ -1140,10 +1168,13 @@ export const VideoSyncPanel: React.FC<PanelProps> = ({ node }) => {
               selectedRange={selectedRange}
             />
 
-            {isTimestampState ? (
-              <div className="rounded-md border border-border bg-card p-3">
+            {isTimestampState || isFullySyncedState ? (
+              <div
+                className={`rounded-md border border-border bg-card p-3 ${isFullySyncedState ? "mt-4" : ""
+                  }`}
+              >
                 <h2 className="mb-2 text-sm font-semibold">
-                  Timestamp this video before analysis features unlock
+                  {isFullySyncedState ? "Adjust Sync" : "Timestamp this video"}
                 </h2>
                 {syncControls}
               </div>
@@ -1151,7 +1182,7 @@ export const VideoSyncPanel: React.FC<PanelProps> = ({ node }) => {
           </div>
         </section>
 
-        {isFullySyncedState ? (
+        {isSynced ? (
           <section className="ui-card">
             <div className="grid gap-5">
               <div>
@@ -1178,11 +1209,6 @@ export const VideoSyncPanel: React.FC<PanelProps> = ({ node }) => {
                     Display range of selected packets
                   </label>
                 </div>
-              </div>
-
-              <div>
-                <h2 className="ui-card-title">Timestamp Sync Settings</h2>
-                {syncControls}
               </div>
             </div>
           </section>

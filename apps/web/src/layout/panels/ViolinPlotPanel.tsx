@@ -9,6 +9,8 @@ import {
   PACKET_NUMBER_KEY,
 } from "./numeric-variable-utils";
 
+import { SearchableSelect } from "../../components/SearchableSelect";
+
 export const violinPlotPanelTags = ["chart", "violin", "density", "analysis"];
 
 type ScaleMode = "auto" | "manual";
@@ -58,12 +60,14 @@ export const ViolinPlotPanel: React.FC<PanelProps> = () => {
   const [orientationMode, setOrientationMode] = useState<OrientationMode>("auto");
 
   useEffect(() => {
+    if (telemetryColumns.length === 0) return;
+
     if (!variableOptions.some((option) => option.value === selectedVariable)) {
       queueMicrotask(() =>
         setSelectedVariable(variableOptions[0]?.value ?? PACKET_NUMBER_KEY),
       );
     }
-  }, [selectedVariable, variableOptions]);
+  }, [selectedVariable, variableOptions, telemetryColumns]);
 
   const selectedEntries = useMemo(
     () => getSelectedRowEntries(telemetryRows, packetSelection),
@@ -325,18 +329,13 @@ export const ViolinPlotPanel: React.FC<PanelProps> = () => {
                   <label className="ui-label" htmlFor="violin-variable">
                     Variable
                   </label>
-                  <select
+                  <SearchableSelect
                     id="violin-variable"
-                    className="ui-input"
                     value={selectedVariable}
-                    onChange={(event) => setSelectedVariable(event.target.value)}
-                  >
-                    {variableOptions.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={setSelectedVariable}
+                    options={variableOptions}
+                    placeholder="Select Variable"
+                  />
                 </div>
 
                 <div>
