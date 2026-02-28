@@ -404,7 +404,7 @@ export const HeadingVectorPanel: React.FC<PanelProps> = () => {
                 </div>
 
                 {scaleMode === "manual" ? (
-                  <div className="grid gap-3 md:grid-cols-2">
+                  <div className="grid gap-3" style={{gridTemplateColumns:"repeat(auto-fit,minmax(160px,1fr))"}}>
                     <div>
                       <label className="ui-label" htmlFor="heading-min">
                         Min Value
@@ -455,7 +455,7 @@ export const HeadingVectorPanel: React.FC<PanelProps> = () => {
                   </select>
                 </div>
 
-                <div className="grid gap-3 md:grid-cols-2">
+                <div className="grid gap-3" style={{gridTemplateColumns:"repeat(auto-fit,minmax(160px,1fr))"}}>
                   <div>
                     <label className="ui-label" htmlFor="heading-zero-direction">
                       Zero Direction
@@ -521,3 +521,4 @@ export const HeadingVectorPanel: React.FC<PanelProps> = () => {
     </div>
   );
 };
+

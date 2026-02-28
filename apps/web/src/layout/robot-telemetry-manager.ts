@@ -503,7 +503,7 @@ class RobotTelemetryManager {
           window.clearTimeout(timeoutId);
         }
 
-      } catch (err: unknown) {
+      } catch {
         if (signal.aborted) return;
 
         // If we were connected, stay connected but maybe log?

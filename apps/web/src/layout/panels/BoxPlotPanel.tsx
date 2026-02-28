@@ -364,7 +364,7 @@ export const BoxPlotPanel: React.FC<PanelProps> = () => {
                 </div>
 
                 {yScaleMode === "manual" ? (
-                  <div className="grid gap-3 md:grid-cols-2">
+                  <div className="grid gap-3" style={{gridTemplateColumns:"repeat(auto-fit,minmax(160px,1fr))"}}>
                     <div>
                       <label className="ui-label" htmlFor="box-y-min">
                         Y Min
@@ -442,3 +442,4 @@ export const BoxPlotPanel: React.FC<PanelProps> = () => {
     </div>
   );
 };
+

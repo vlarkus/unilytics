@@ -224,6 +224,7 @@ export const VideoSyncPanel: React.FC<PanelProps> = ({ node }) => {
   // Keep a ref to the current scale to avoid re-creating the resize handler
   // on every frame during a drag (since setViewportScale triggers re-render).
   const viewportScaleRef = useRef(viewportScale);
+  // eslint-disable-next-line react-hooks/refs
   viewportScaleRef.current = viewportScale;
 
   const beginViewportResize = useCallback(
@@ -639,8 +640,8 @@ export const VideoSyncPanel: React.FC<PanelProps> = ({ node }) => {
       </div>
 
       {syncMode === "segment" ? (
-        <div className="grid gap-3 md:grid-cols-[1fr_auto] md:items-end">
-          <div>
+        <div className="flex flex-wrap items-end gap-3">
+          <div className="flex-1 min-w-0">
             <label className="ui-label" htmlFor="video-sync-second">
               Video second (since beginning)
             </label>
@@ -1217,3 +1218,4 @@ export const VideoSyncPanel: React.FC<PanelProps> = ({ node }) => {
     </div>
   );
 };
+

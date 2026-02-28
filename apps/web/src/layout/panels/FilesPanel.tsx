@@ -217,11 +217,9 @@ export const FilesPanel: React.FC<PanelProps> = () => {
                       Delete
                     </button>
                   </div>
-                  <div className="mt-2 grid grid-cols-2 gap-2 text-xs">
-                    <span className="text-muted-foreground">Duration</span>
-                    <span>{formatDuration(video.durationSeconds)}</span>
-                    <span className="text-muted-foreground">Opened</span>
-                    <span>{formatTimestamp(video.createdAt)}</span>
+                  <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs">
+                    <span className="text-muted-foreground">Duration: <span className="text-foreground">{formatDuration(video.durationSeconds)}</span></span>
+                    <span className="text-muted-foreground">Opened: <span className="text-foreground">{formatTimestamp(video.createdAt)}</span></span>
                   </div>
                 </div>
               ))
@@ -232,3 +230,4 @@ export const FilesPanel: React.FC<PanelProps> = () => {
     </div>
   );
 };
+

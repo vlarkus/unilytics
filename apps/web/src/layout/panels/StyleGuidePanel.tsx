@@ -481,3 +481,4 @@ export const StyleGuidePanel: React.FC<PanelProps> = () => {
     </div>
   );
 };
+

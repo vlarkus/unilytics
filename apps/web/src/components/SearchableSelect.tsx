@@ -72,6 +72,7 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({
                 searchInputRef.current?.focus();
             }, 50);
         } else {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setSearchTerm(""); // Reset search when closing
         }
     }, [isOpen]);

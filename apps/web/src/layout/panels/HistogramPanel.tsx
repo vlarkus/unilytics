@@ -299,7 +299,7 @@ export const HistogramPanel: React.FC<PanelProps> = () => {
                   </div>
                 </div>
 
-                <div className="grid gap-3 md:grid-cols-2">
+                <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fit,minmax(160px,1fr))" }}>
                   <div>
                     <label className="ui-label" htmlFor="histogram-bins">
                       Bin Count
@@ -347,7 +347,7 @@ export const HistogramPanel: React.FC<PanelProps> = () => {
                 </div>
 
                 {rangeMode === "manual" ? (
-                  <div className="grid gap-3 md:grid-cols-2">
+                  <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fit,minmax(160px,1fr))" }}>
                     <div>
                       <label className="ui-label" htmlFor="histogram-min">
                         Min Value
@@ -407,3 +407,4 @@ export const HistogramPanel: React.FC<PanelProps> = () => {
     </div>
   );
 };
+

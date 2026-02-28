@@ -204,3 +204,4 @@ export const TelemetryTablePanel: React.FC<PanelProps> = () => {
     </div>
   );
 };
+

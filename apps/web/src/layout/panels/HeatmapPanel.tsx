@@ -257,7 +257,7 @@ export const HeatmapPanel: React.FC<PanelProps> = () => {
 
             <section className="ui-card">
               <div className="grid gap-3">
-                <div className="grid gap-3 md:grid-cols-2">
+                <div className="grid gap-3" style={{gridTemplateColumns:"repeat(auto-fit,minmax(160px,1fr))"}}>
                   <div>
                     <label className="ui-label" htmlFor="heatmap-x-variable">
                       X Variable
@@ -284,7 +284,7 @@ export const HeatmapPanel: React.FC<PanelProps> = () => {
                   </div>
                 </div>
 
-                <div className="grid gap-3 md:grid-cols-2">
+                <div className="grid gap-3" style={{gridTemplateColumns:"repeat(auto-fit,minmax(160px,1fr))"}}>
                   <div>
                     <label className="ui-label" htmlFor="heatmap-x-bins">
                       X Boxes
@@ -330,7 +330,7 @@ export const HeatmapPanel: React.FC<PanelProps> = () => {
                   </select>
                 </div>
 
-                <div className="grid gap-3 md:grid-cols-2">
+                <div className="grid gap-3" style={{gridTemplateColumns:"repeat(auto-fit,minmax(160px,1fr))"}}>
                   <div>
                     <label className="ui-label" htmlFor="heatmap-x-scale">
                       X Scale
@@ -362,7 +362,7 @@ export const HeatmapPanel: React.FC<PanelProps> = () => {
                 </div>
 
                 {xScaleMode === "manual" ? (
-                  <div className="grid gap-3 md:grid-cols-2">
+                  <div className="grid gap-3" style={{gridTemplateColumns:"repeat(auto-fit,minmax(160px,1fr))"}}>
                     <div>
                       <label className="ui-label" htmlFor="heatmap-x-min">
                         X Min
@@ -397,7 +397,7 @@ export const HeatmapPanel: React.FC<PanelProps> = () => {
                 ) : null}
 
                 {yScaleMode === "manual" ? (
-                  <div className="grid gap-3 md:grid-cols-2">
+                  <div className="grid gap-3" style={{gridTemplateColumns:"repeat(auto-fit,minmax(160px,1fr))"}}>
                     <div>
                       <label className="ui-label" htmlFor="heatmap-y-min">
                         Y Min
@@ -440,3 +440,4 @@ export const HeatmapPanel: React.FC<PanelProps> = () => {
     </div>
   );
 };
+

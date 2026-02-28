@@ -6,7 +6,7 @@ import {
   Actions,
   DockLocation,
 } from "flexlayout-react";
-import { Plus, Search, Save, FolderOpen } from "lucide-react";
+import { Plus, Search, Save, FolderOpen, Folder, LayoutDashboard } from "lucide-react";
 import "flexlayout-react/style/light.css";
 import { panelRegistry, defaultLayout } from "./PanelRegistry";
 import { robotTelemetryManager } from "./robot-telemetry-manager";
@@ -136,26 +136,27 @@ panelRegistry.register(
 
 export const MainScreen: React.FC = () => {
   const logoSrc = `${import.meta.env.BASE_URL}logo.png`;
-  const [model] = useState(() => Model.fromJson(defaultLayout));
-  const [isAddPanelOpen, setIsAddPanelOpen] = useState(false);
+  const [model, setModel] = useState(() => Model.fromJson(defaultLayout));
+  const [openMenu, setOpenMenu] = useState<"file" | "preset" | "addPanel" | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
-  const addPanelRef = useRef<HTMLDivElement>(null);
+  const menuContainerRef = useRef<HTMLDivElement>(null);
   const openFileInputRef = useRef<HTMLInputElement>(null);
+  const openPresetInputRef = useRef<HTMLInputElement>(null);
   const nextPanelId = useRef(0);
 
   // Close dropdown when clicking outside
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (
-        addPanelRef.current &&
-        !addPanelRef.current.contains(event.target as Node)
+        menuContainerRef.current &&
+        !menuContainerRef.current.contains(event.target as Node)
       ) {
-        setIsAddPanelOpen(false);
+        setOpenMenu(null);
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [addPanelRef]);
+  }, []);
 
   useEffect(() => {
     const isTouchOnly =
@@ -210,7 +211,7 @@ export const MainScreen: React.FC = () => {
       ),
     );
 
-    setIsAddPanelOpen(false);
+    setOpenMenu(null);
   };
 
   const renameTabWithPrompt = (node: TabNode) => {
@@ -273,6 +274,43 @@ export const MainScreen: React.FC = () => {
     }
   };
 
+  const onSavePreset = () => {
+    const json = model.toJson();
+    const blob = new Blob([JSON.stringify(json, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const dateStamp = new Date().toISOString().replaceAll(":", "-");
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `preset-${dateStamp}.json`;
+    document.body.appendChild(anchor);
+    anchor.click();
+    document.body.removeChild(anchor);
+    URL.revokeObjectURL(url);
+  };
+
+  const onOpenPresetClick = () => {
+    openPresetInputRef.current?.click();
+  };
+
+  const onOpenPresetFileChange = async (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const text = await file.text();
+      const json = JSON.parse(text);
+      const newModel = Model.fromJson(json);
+      setModel(newModel);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unknown error";
+      window.alert(`Failed to load preset: ${message}`);
+    } finally {
+      event.target.value = "";
+    }
+  };
+
   return (
     <div className="w-full h-full min-h-0 overflow-hidden bg-background text-foreground flex flex-col">
       {/* Top Bar */}
@@ -286,23 +324,7 @@ export const MainScreen: React.FC = () => {
           />
         </div>
 
-        <div className="flex items-center gap-2">
-          <button
-            className="ui-icon-btn"
-            onClick={onSavePackets}
-            title="Save Packets (CSV)"
-          >
-            <Save size={20} />
-          </button>
-
-          <button
-            className="ui-icon-btn"
-            onClick={onOpenPacketsClick}
-            title="Open Packets (CSV)"
-          >
-            <FolderOpen size={20} />
-          </button>
-
+        <div className="flex items-center gap-2" ref={menuContainerRef}>
           <input
             ref={openFileInputRef}
             type="file"
@@ -310,18 +332,93 @@ export const MainScreen: React.FC = () => {
             className="hidden"
             onChange={onOpenPacketsFileChange}
           />
+          <input
+            ref={openPresetInputRef}
+            type="file"
+            accept=".json,application/json"
+            className="hidden"
+            onChange={onOpenPresetFileChange}
+          />
 
-          {/* Add Panel Button & Dropdown */}
-          <div className="relative" ref={addPanelRef}>
+          {/* File Menu */}
+          <div className="relative">
             <button
-              className={`ui-icon-btn ${isAddPanelOpen ? "ui-icon-btn-active" : ""}`}
-              onClick={() => setIsAddPanelOpen(!isAddPanelOpen)}
+              className={`ui-icon-btn ${openMenu === "file" ? "ui-icon-btn-active" : ""}`}
+              onClick={() => setOpenMenu(openMenu === "file" ? null : "file")}
+              title="File"
+            >
+              <Folder size={20} />
+            </button>
+
+            {openMenu === "file" && (
+              <div className="add-panel-menu ui-menu absolute right-0 top-full mt-2 w-48 z-50 flex flex-col animate-in fade-in zoom-in-95 duration-100 p-1">
+                <button
+                  className="ui-menu-item text-left px-3 py-2 flex items-center gap-2"
+                  onClick={() => {
+                    onOpenPacketsClick();
+                    setOpenMenu(null);
+                  }}
+                >
+                  <FolderOpen size={16} /> Open
+                </button>
+                <button
+                  className="ui-menu-item text-left px-3 py-2 flex items-center gap-2"
+                  onClick={() => {
+                    onSavePackets();
+                    setOpenMenu(null);
+                  }}
+                >
+                  <Save size={16} /> Save
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Preset Menu */}
+          <div className="relative">
+            <button
+              className={`ui-icon-btn ${openMenu === "preset" ? "ui-icon-btn-active" : ""}`}
+              onClick={() => setOpenMenu(openMenu === "preset" ? null : "preset")}
+              title="Presets"
+            >
+              <LayoutDashboard size={20} />
+            </button>
+
+            {openMenu === "preset" && (
+              <div className="add-panel-menu ui-menu absolute right-0 top-full mt-2 w-48 z-50 flex flex-col animate-in fade-in zoom-in-95 duration-100 p-1">
+                <button
+                  className="ui-menu-item text-left px-3 py-2 flex items-center gap-2"
+                  onClick={() => {
+                    onOpenPresetClick();
+                    setOpenMenu(null);
+                  }}
+                >
+                  <FolderOpen size={16} /> Open
+                </button>
+                <button
+                  className="ui-menu-item text-left px-3 py-2 flex items-center gap-2"
+                  onClick={() => {
+                    onSavePreset();
+                    setOpenMenu(null);
+                  }}
+                >
+                  <Save size={16} /> Save
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Add Panel Menu */}
+          <div className="relative">
+            <button
+              className={`ui-icon-btn ${openMenu === "addPanel" ? "ui-icon-btn-active" : ""}`}
+              onClick={() => setOpenMenu(openMenu === "addPanel" ? null : "addPanel")}
               title="Add Panel"
             >
               <Plus size={20} />
             </button>
 
-            {isAddPanelOpen && (
+            {openMenu === "addPanel" && (
               <div className="add-panel-menu ui-menu absolute right-0 top-full mt-2 w-64 z-50 flex flex-col animate-in fade-in zoom-in-95 duration-100">
                 {/* Search Bar */}
                 <div className="p-3 border-b border-border flex items-center gap-2">
@@ -357,7 +454,6 @@ export const MainScreen: React.FC = () => {
               </div>
             )}
           </div>
-
         </div>
       </div>
 

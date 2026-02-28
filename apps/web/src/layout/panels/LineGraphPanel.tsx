@@ -244,7 +244,7 @@ export const LineGraphPanel: React.FC<PanelProps> = () => {
 
             <section className="ui-card">
               <div className="grid gap-3">
-                <div className="grid gap-3 md:grid-cols-2">
+                <div className="grid gap-3" style={{gridTemplateColumns:"repeat(auto-fit,minmax(160px,1fr))"}}>
                   <div>
                     <label className="ui-label" htmlFor="line-x-mode">
                       X Axis
@@ -289,7 +289,7 @@ export const LineGraphPanel: React.FC<PanelProps> = () => {
                 </div>
 
                 {yScaleMode === "manual" ? (
-                  <div className="grid gap-3 md:grid-cols-2">
+                  <div className="grid gap-3" style={{gridTemplateColumns:"repeat(auto-fit,minmax(160px,1fr))"}}>
                     <div>
                       <label className="ui-label" htmlFor="line-y-min">
                         Y Min
@@ -358,3 +358,4 @@ export const LineGraphPanel: React.FC<PanelProps> = () => {
     </div>
   );
 };
+

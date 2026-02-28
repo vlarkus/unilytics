@@ -1,0 +1,56 @@
+# Panel Layout Responsiveness Rework
+
+Currently, the panels use viewport-based CSS media queries (like `md:grid-cols-2`) for responsiveness. Since FlexLayout puts these panels into resizable docks, a panel might be only 300px wide while the screen is 1920px wide. Viewport media queries will trigger the "desktop" layout inside that tiny 300px panel, causing the contents to squish or overflow!
+
+We need to make elements responsive to *their own container's width*.
+
+## Proposed Changes (Strike out what you don't like)
+
+### 1. Global Strategy: Replace Viewport Media Queries
+* Replace `md:grid-cols-*` and `lg:flex-row` classes in panels with either `flex-wrap` or CSS grid `auto-fit` (e.g., `grid-cols-[repeat(auto-fit,minmax(Xpx,1fr))]`).
+* This ensures panels reflow based on *their actual width* rather than the monitor's width.
+* Add `min-w-0` to flex children to prevent them from forcing the panel wider than the layout allows (fixing horizontal overflow "panel explosion").
+
+### 2. RobotConnectionPanel
+* Change the rigid `max-w-30 min-w-30` on the IP Input to `min-w-0 flex-1`.
+* Allow the connection controls `flex items-center gap-2` to use `flex-wrap` so that on extremely narrow widths (or phones), the input sits above the connection buttons rather than getting squished to an unusable size.
+
+### 3. PacketSelectionPanel
+* **Start/Finish Packet Grid:** Replace `grid gap-3 md:grid-cols-2` with a robust `grid grid-cols-[repeat(auto-fit,minmax(250px,1fr))]` or a flex-wrap container so the Start and Finish blocks stack when the panel is narrow.
+* **Tables:** Ensure the packet table container has `max-w-full overflow-x-auto` and its parent has `min-w-0` so the table doesn't force the panel to expand horizontally off-screen.
+
+### 4. VideoSyncPanel
+* **Sync Controls:** The segment synchronization controls use `md:grid-cols-[1fr_auto] md:items-end`. This forces them side-by-side on desktop regardless of panel width. Replace this with a flex container that wraps: `flex flex-wrap items-end gap-3`.
+* **Telemetry target inputs (Hour/Min/Sec):** These already use `flex flex-wrap`, which is good! Ensure the inputs have a minimum reasonable width but can shrink `min-w-0 flex-1` so they don't break the layout.
+
+### 5. FilesPanel
+* **Stats Grids:** The `grid grid-cols-2 gap-2` blocks for stats might get cramped on a phone. We can change them to `flex flex-wrap justify-between` or allow them to stack as `flex-col` if space is tight.
+* **Video List:** Ensure video names truncate properly by verifying `min-w-0` is present on the list item text (it looks like it is, but we will test it).
+
+### 6. TelemetryTablePanel
+* **Toolbar:** The configuration toolbar (`Select All`, `Deselect All`, etc.) uses `flex flex-wrap`. This is already correct! We will just ensure the parent container doesn't force horizontal scroll.
+
+## Content Structure Improvements (Visual Design)
+
+Alongside responsive element wrapping, we need to improve the **information architecture** of these panels. Many panels have become very tall, forcing a lot of vertical scrolling and overwhelming the user with settings. 
+
+### 7. Introduce Tabs for Complex Panels
+* **VideoSyncPanel:** This is the most complex panel. It currently has a long scroll of sync settings underneath the video. 
+  * **Proposed Fix:** Split into two tabs: `Player` (shows the video and immediate playback controls) and `Sync Settings` (contains the anchor configuration, packet offsets, and syncing logic).
+
+### 8. Use Collapsible Sections (Accordions/Details) for Advanced Settings
+* For charting panels like **TwoDGraphPanel**, **HistogramPanel**, and **PieChartPanel**, the configuration settings take up more vertical space than the chart itself!
+* **Proposed Fix:** Wrap subgroups of settings in collapsible `<details>` or custom accordion wrappers (e.g., a "Data Variables" dropdown, and an "Advanced Display/Scales" dropdown). 
+  * By default, high-level settings (like which variable to chart) will be visible, while granular settings (manual X/Y limits, full-screen fit mode, color gradients) will be tucked away but easily accessible.
+
+### 9. Visual Grouping and Hierarchy
+* **All Panels:** When inputs wrap to a new line, ensure there is a clear visual divider or bounding box (`ui-card`) around logically grouped settings. Currently, some panels just list inputs vertically without explicit visual bounds between "Data settings" vs "Display settings". 
+* **Action:** I will add subtle borders or grouped backgrounds to clusters of inputs across the `ui-card` configurations.
+
+---
+
+## Verification Plan
+### Manual Verification
+1. I will start the dashboard and open the edited panels via the top bar.
+2. I will resize the panels to be extremely wide, then extremely narrow within the FlexLayout grids.
+3. I will verify that the content gracefully wraps to new lines or stacks vertically (like on a phone) rather than squishing out of bounds or forcing a horizontal scrollbar on the whole dashboard.

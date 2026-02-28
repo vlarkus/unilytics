@@ -33,10 +33,10 @@ export const RobotConnectionPanel: React.FC<PanelProps> = () => {
   return (
     <div className="panel-content">
       <div className="panel-shell">
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <input
             id="robot-ip"
-            className="ui-input flex-1 max-w-30 min-w-30"
+            className="ui-input flex-1 min-w-0"
             inputMode="text"
             autoComplete="off"
             placeholder="192.168.43.1:12345"
@@ -133,3 +133,4 @@ export const RobotConnectionPanel: React.FC<PanelProps> = () => {
     </div>
   );
 };
+

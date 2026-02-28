@@ -565,3 +565,4 @@ export const PieChartPanel: React.FC<PanelProps> = () => {
     </div>
   );
 };
+

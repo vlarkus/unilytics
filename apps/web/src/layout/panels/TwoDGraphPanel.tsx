@@ -258,7 +258,7 @@ export const TwoDGraphPanel: React.FC<PanelProps> = () => {
 
             <section className="ui-card">
               <div className="grid gap-3">
-                <div className="grid gap-3 md:grid-cols-2">
+                <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fit,minmax(160px,1fr))" }}>
                   <div>
                     <label className="ui-label" htmlFor="graph-x-variable">
                       X Variable
@@ -285,7 +285,7 @@ export const TwoDGraphPanel: React.FC<PanelProps> = () => {
                   </div>
                 </div>
 
-                <div className="grid gap-3 md:grid-cols-2">
+                <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fit,minmax(160px,1fr))" }}>
                   <div>
                     <label className="ui-label" htmlFor="graph-x-scale-mode">
                       X Scale
@@ -317,7 +317,7 @@ export const TwoDGraphPanel: React.FC<PanelProps> = () => {
                 </div>
 
                 {xScaleMode === "manual" ? (
-                  <div className="grid gap-3 md:grid-cols-2">
+                  <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fit,minmax(160px,1fr))" }}>
                     <div>
                       <label className="ui-label" htmlFor="graph-x-min">
                         X Min
@@ -352,7 +352,7 @@ export const TwoDGraphPanel: React.FC<PanelProps> = () => {
                 ) : null}
 
                 {yScaleMode === "manual" ? (
-                  <div className="grid gap-3 md:grid-cols-2">
+                  <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fit,minmax(160px,1fr))" }}>
                     <div>
                       <label className="ui-label" htmlFor="graph-y-min">
                         Y Min
@@ -429,3 +429,4 @@ export const TwoDGraphPanel: React.FC<PanelProps> = () => {
     </div>
   );
 };
+

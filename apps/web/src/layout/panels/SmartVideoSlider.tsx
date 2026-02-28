@@ -164,3 +164,4 @@ export const SmartVideoSlider: React.FC<SmartVideoSliderProps> = ({
     </div>
   );
 };
+

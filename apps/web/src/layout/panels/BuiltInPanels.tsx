@@ -66,3 +66,4 @@ export const WelcomePanel: React.FC<PanelProps> = () => {
     </div>
   );
 };
+

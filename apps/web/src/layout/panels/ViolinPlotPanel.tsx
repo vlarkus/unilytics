@@ -369,7 +369,7 @@ export const ViolinPlotPanel: React.FC<PanelProps> = () => {
                 </div>
 
                 {yScaleMode === "manual" ? (
-                  <div className="grid gap-3 md:grid-cols-2">
+                  <div className="grid gap-3" style={{gridTemplateColumns:"repeat(auto-fit,minmax(160px,1fr))"}}>
                     <div>
                       <label className="ui-label" htmlFor="violin-y-min">
                         Y Min
@@ -456,3 +456,4 @@ export const ViolinPlotPanel: React.FC<PanelProps> = () => {
     </div>
   );
 };
+

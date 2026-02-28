@@ -294,7 +294,7 @@ export const RoseDiagramPanel: React.FC<PanelProps> = () => {
                 </div>
 
                 {rangeMode === "manual" ? (
-                  <div className="grid gap-3 md:grid-cols-2">
+                  <div className="grid gap-3" style={{gridTemplateColumns:"repeat(auto-fit,minmax(160px,1fr))"}}>
                     <div>
                       <label className="ui-label" htmlFor="rose-min">
                         Min Value
@@ -398,3 +398,4 @@ export const RoseDiagramPanel: React.FC<PanelProps> = () => {
     </div>
   );
 };
+
