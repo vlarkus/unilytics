@@ -22,8 +22,8 @@ export interface RobotTelemetrySnapshot {
   connectionStatus: RobotConnectionStatus;
   ipAddress: string;
   connectionMessage: string | null;
-  telemetryColumns: string[];
-  telemetryRows: TelemetryRow[];
+  telemetryColumns: readonly string[];
+  telemetryRows: readonly TelemetryRow[];
   packetSelection: PacketSelection;
   streamPaused: boolean;
 }
@@ -44,6 +44,8 @@ class RobotTelemetryManager {
   private connectionMessage: string | null = null;
 
   private telemetryColumns: string[] = [];
+
+  private telemetryColumnSet = new Set<string>();
 
   private telemetryRows: TelemetryRow[] = [];
 
@@ -248,7 +250,8 @@ class RobotTelemetryManager {
     data.forEach((datum) => {
       const name = datum.name.trim();
       if (!name) return;
-      if (!this.telemetryColumns.includes(name)) {
+      if (!this.telemetryColumnSet.has(name)) {
+        this.telemetryColumnSet.add(name);
         this.telemetryColumns = [...this.telemetryColumns, name];
       }
       values[name] = datum.value;
@@ -262,17 +265,19 @@ class RobotTelemetryManager {
       values,
     };
 
-    const nextRows = [...this.telemetryRows, row];
-    this.telemetryRows =
-      nextRows.length > MAX_TELEMETRY_ROWS
-        ? nextRows.slice(nextRows.length - MAX_TELEMETRY_ROWS)
-        : nextRows;
+    this.telemetryRows.push(row);
+    if (this.telemetryRows.length > MAX_TELEMETRY_ROWS) {
+      this.telemetryRows = this.telemetryRows.slice(
+        this.telemetryRows.length - MAX_TELEMETRY_ROWS,
+      );
+    }
     this.reconcileSelectionWithRows();
     this.emit();
   };
 
   clearTelemetry = () => {
     this.telemetryColumns = [];
+    this.telemetryColumnSet.clear();
     this.telemetryRows = [];
     this.nextRowId = 1;
     this.packetSelection = {
@@ -365,6 +370,7 @@ class RobotTelemetryManager {
       });
     });
 
+    this.telemetryColumnSet = columnSet;
     this.telemetryColumns = Array.from(columnSet);
     this.telemetryRows = nextRows;
     this.nextRowId =
@@ -383,12 +389,8 @@ class RobotTelemetryManager {
       connectionStatus: this.connectionStatus,
       ipAddress: this.ipAddress,
       connectionMessage: this.connectionMessage,
-      telemetryColumns: [...this.telemetryColumns],
-      telemetryRows: this.telemetryRows.map((row) => ({
-        id: row.id,
-        timestamp: row.timestamp,
-        values: { ...row.values },
-      })),
+      telemetryColumns: this.telemetryColumns,
+      telemetryRows: this.telemetryRows,
       packetSelection: { ...this.packetSelection },
       streamPaused: this.streamPaused,
     };
