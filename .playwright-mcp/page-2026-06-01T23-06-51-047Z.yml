@@ -1,0 +1,60 @@
+- generic [ref=e4]:
+  - generic [ref=e5]:
+    - img "Logo" [ref=e7]
+    - generic [ref=e8]:
+      - button "File" [ref=e10]:
+        - img [ref=e11]
+      - button "Presets" [ref=e14]:
+        - img [ref=e15]
+      - button "Add Panel" [ref=e21]:
+        - img [ref=e22]
+  - generic [ref=e25]:
+    - generic [ref=e26]: FindBorderBarSize
+    - generic [ref=e35] [cursor=pointer]:
+      - generic [ref=e37]: Welcome
+      - generic "Close" [ref=e38]:
+        - img [ref=e39]
+    - generic [ref=e47]:
+      - img "Unilytics logo" [ref=e49]
+      - generic [ref=e50]:
+        - heading "Description" [level=1] [ref=e51]
+        - paragraph [ref=e52]:
+          - text: Unilytics is a customizable dashboard app for viewing and analyzing FTC robot telemetry. It was built by
+          - strong [ref=e53]: 14423 Robocorns
+          - text: to make debugging, tuning, and match analysis faster and easier during development and testing.
+      - generic [ref=e54]:
+        - heading "More Info" [level=1] [ref=e55]
+        - paragraph [ref=e56]:
+          - link "GitHub" [ref=e57] [cursor=pointer]:
+            - /url: https://github.com/vlarkus/unilytics
+            - img [ref=e58]
+            - text: GitHub
+      - generic [ref=e60]:
+        - heading "Requirements" [level=1] [ref=e61]
+        - paragraph [ref=e62]: To use this app, you need either a custom WebSocket implementation on your robot to connect and stream data, or a simple CSV file with prerecorded logs. You can also generate mock data and export it to see an example.
+      - generic [ref=e63]:
+        - heading "Quick Start" [level=2] [ref=e64]
+        - list [ref=e65]:
+          - listitem [ref=e66]:
+            - strong [ref=e67]:
+              - text: 1. Open the
+              - emphasis [ref=e68]: Connection
+              - text: panel
+            - text: and enter the robot IP address.
+          - listitem [ref=e69]:
+            - strong [ref=e70]: 2. Connect
+            - text: and start collecting telemetry packets.
+          - listitem [ref=e71]:
+            - strong [ref=e72]: 3. Choose a packet range
+            - text: in the
+            - emphasis [ref=e73]: Select Packets
+            - text: panel.
+          - listitem [ref=e74]:
+            - strong [ref=e75]: 4. Open any analysis panels
+            - text: you find useful (for example,
+            - emphasis [ref=e76]: Data Table
+            - text: ","
+            - emphasis [ref=e77]: Rose Diagram
+            - text: ", or"
+            - emphasis [ref=e78]: Pie Chart
+            - text: ).

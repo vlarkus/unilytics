@@ -445,7 +445,7 @@ export const MainScreen: React.FC = () => {
                 </button>
 
                 {showLayoutManager && (
-                  <div className="border-t border-b border-border my-1 max-h-40 overflow-y-auto">
+                  <div className="border-t border-b border-muted-foreground/20 mx-3 my-1 max-h-40 overflow-y-auto">
                     {savedLayouts.length === 0 ? (
                       <div className="px-3 py-3 text-xs text-muted-foreground text-center">
                         No layouts saved yet.
@@ -502,7 +502,7 @@ export const MainScreen: React.FC = () => {
                   <FolderOpen size={14} /> Import Layout...
                 </button>
 
-                <div className="my-1 border-t border-border" />
+                <div className="mx-3 my-1 border-t border-muted-foreground/20" />
 
                 <button
                   className="ui-menu-item text-left px-3 py-2 flex items-center gap-2"
@@ -517,7 +517,7 @@ export const MainScreen: React.FC = () => {
                   <HardDriveUpload size={14} /> Load Project
                 </button>
 
-                <div className="my-1 border-t border-border" />
+                <div className="mx-3 my-1 border-t border-muted-foreground/20" />
 
                 <button
                   className="ui-menu-item text-left px-3 py-2 flex items-center gap-2"

@@ -1,0 +1,74 @@
+- generic [ref=e4]:
+  - generic [ref=e5]:
+    - img "Logo" [ref=e7]
+    - generic [ref=e8]:
+      - button "Add Panel" [ref=e10]:
+        - img [ref=e11]
+      - generic [ref=e12]:
+        - button "Menu" [active] [ref=e13]:
+          - img [ref=e14]
+        - generic [ref=e116]:
+          - generic [ref=e117]: Packets
+          - button "Save Packets" [ref=e118]:
+            - img [ref=e119]
+            - text: Save Packets
+          - button "Open Packets" [ref=e123]:
+            - img [ref=e124]
+            - text: Open Packets
+          - generic [ref=e127]: Layout
+          - button "Export Layout" [ref=e128]:
+            - img [ref=e129]
+            - text: Export Layout
+          - button "Import Layout" [ref=e132]:
+            - img [ref=e133]
+            - text: Import Layout
+  - generic [ref=e17]:
+    - generic [ref=e18]: FindBorderBarSize
+    - generic [ref=e27] [cursor=pointer]:
+      - generic [ref=e29]: Welcome
+      - generic "Close" [ref=e30]:
+        - img [ref=e31]
+    - generic [ref=e39]:
+      - img "Unilytics logo" [ref=e41]
+      - generic [ref=e42]:
+        - heading "Description" [level=1] [ref=e43]
+        - paragraph [ref=e44]:
+          - text: Unilytics is a customizable dashboard app for viewing and analyzing FTC robot telemetry. It was built by
+          - strong [ref=e45]: 14423 Robocorns
+          - text: to make debugging, tuning, and match analysis faster and easier during development and testing.
+      - generic [ref=e46]:
+        - heading "More Info" [level=1] [ref=e47]
+        - paragraph [ref=e48]:
+          - link "GitHub" [ref=e49] [cursor=pointer]:
+            - /url: https://github.com/vlarkus/unilytics
+            - img [ref=e50]
+            - text: GitHub
+      - generic [ref=e52]:
+        - heading "Requirements" [level=1] [ref=e53]
+        - paragraph [ref=e54]: To use this app, you need either a custom WebSocket implementation on your robot to connect and stream data, or a simple CSV file with prerecorded logs. You can also generate mock data and export it to see an example.
+      - generic [ref=e55]:
+        - heading "Quick Start" [level=2] [ref=e56]
+        - list [ref=e57]:
+          - listitem [ref=e58]:
+            - strong [ref=e59]:
+              - text: 1. Open the
+              - emphasis [ref=e60]: Connection
+              - text: panel
+            - text: and enter the robot IP address.
+          - listitem [ref=e61]:
+            - strong [ref=e62]: 2. Connect
+            - text: and start collecting telemetry packets.
+          - listitem [ref=e63]:
+            - strong [ref=e64]: 3. Choose a packet range
+            - text: in the
+            - emphasis [ref=e65]: Select Packets
+            - text: panel.
+          - listitem [ref=e66]:
+            - strong [ref=e67]: 4. Open any analysis panels
+            - text: you find useful (for example,
+            - emphasis [ref=e68]: Data Table
+            - text: ","
+            - emphasis [ref=e69]: Rose Diagram
+            - text: ", or"
+            - emphasis [ref=e70]: Pie Chart
+            - text: ).
