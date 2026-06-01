@@ -14,6 +14,22 @@ import { SearchableSelect } from "../../components/SearchableSelect";
 
 export const lineGraphPanelTags = ["chart", "line", "timeseries", "analysis"];
 
+const computeBounds = (
+  arr: { x: number; y: number }[],
+  defaults: { xMin: number; xMax: number; yMin: number; yMax: number },
+) => {
+  if (arr.length === 0) return defaults;
+  let xMin = arr[0].x, xMax = arr[0].x, yMin = arr[0].y, yMax = arr[0].y;
+  for (let i = 1; i < arr.length; i++) {
+    const { x, y } = arr[i];
+    if (x < xMin) xMin = x;
+    if (x > xMax) xMax = x;
+    if (y < yMin) yMin = y;
+    if (y > yMax) yMax = y;
+  }
+  return { xMin, xMax, yMin, yMax };
+};
+
 type ScaleMode = "auto" | "manual";
 type XAxisMode = typeof PACKET_NUMBER_KEY | typeof TIMESTAMP_KEY;
 type FullScreenFitMode = "fill" | "square";
@@ -75,10 +91,11 @@ export const LineGraphPanel: React.FC<PanelProps> = () => {
     [selectedEntries, xAxisMode, yVariable],
   );
 
-  const xMin = points.length > 0 ? Math.min(...points.map((point) => point.x)) : 0;
-  const xMax = points.length > 0 ? Math.max(...points.map((point) => point.x)) : 1;
-  const yAutoMin = points.length > 0 ? Math.min(...points.map((point) => point.y)) : -100;
-  const yAutoMax = points.length > 0 ? Math.max(...points.map((point) => point.y)) : 100;
+  const bounds = computeBounds(points, { xMin: 0, xMax: 1, yMin: -100, yMax: 100 });
+  const xMin = bounds.xMin;
+  const xMax = bounds.xMax;
+  const yAutoMin = bounds.yMin;
+  const yAutoMax = bounds.yMax;
   const yManualMin = parseNumber(yMinInput, yAutoMin);
   const yManualMax = parseNumber(yMaxInput, yAutoMax);
   const yMin = yScaleMode === "auto" ? yAutoMin : Math.min(yManualMin, yManualMax);
@@ -90,6 +107,17 @@ export const LineGraphPanel: React.FC<PanelProps> = () => {
     () => points.filter((point) => point.y >= yMin && point.y <= yMax),
     [points, yMax, yMin],
   );
+
+  const MAX_RENDERED_POINTS = 500;
+  const downsampledPoints = React.useMemo(() => {
+    if (visiblePoints.length <= MAX_RENDERED_POINTS) return visiblePoints;
+    const step = visiblePoints.length / MAX_RENDERED_POINTS;
+    const result: typeof visiblePoints = [];
+    for (let i = 0; i < MAX_RENDERED_POINTS; i++) {
+      result.push(visiblePoints[Math.floor(i * step)]);
+    }
+    return result;
+  }, [visiblePoints]);
 
   const chartSize = 700;
   const padding = 62;
@@ -183,7 +211,7 @@ export const LineGraphPanel: React.FC<PanelProps> = () => {
             ) : null}
 
             {showPoints
-              ? visiblePoints.map((point, index) => (
+              ? downsampledPoints.map((point, index) => (
                 <circle
                   key={`${point.x}-${point.y}-${index}`}
                   cx={toSvgX(point.x)}

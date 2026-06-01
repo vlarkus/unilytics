@@ -14,6 +14,16 @@ export const RoseDiagramPanelTags = [
   "analysis",
 ];
 
+const computeMinMax = (arr: number[], defaultMin: number, defaultMax: number) => {
+  if (arr.length === 0) return { min: defaultMin, max: defaultMax };
+  let min = arr[0], max = arr[0];
+  for (let i = 1; i < arr.length; i++) {
+    if (arr[i] < min) min = arr[i];
+    if (arr[i] > max) max = arr[i];
+  }
+  return { min, max };
+};
+
 const sanitizeDecimalInput = (value: string) => {
   const hasLeadingMinus = value.trimStart().startsWith("-");
   const cleaned = value.replace(/[^0-9.]/g, "");
@@ -77,8 +87,9 @@ export const RoseDiagramPanel: React.FC<PanelProps> = () => {
       .filter((value) => Number.isFinite(value));
   }, [selectedColumn, selectedRows]);
 
-  const autoMin = numericValues.length > 0 ? Math.min(...numericValues) : 0;
-  const autoMax = numericValues.length > 0 ? Math.max(...numericValues) : 360;
+  const autoRange = computeMinMax(numericValues, 0, 360);
+  const autoMin = autoRange.min;
+  const autoMax = autoRange.max;
   const minValue = parseNumber(minInput, autoMin);
   const maxValue = parseNumber(maxInput, autoMax);
   const lowerBound =
@@ -118,7 +129,13 @@ export const RoseDiagramPanel: React.FC<PanelProps> = () => {
     return {
       counts,
       consideredValueCount: inputValues.length,
-      maxCount: Math.max(...counts, 1),
+      maxCount: (() => {
+        let maxCount = 1;
+        for (const c of counts) {
+          if (c > maxCount) maxCount = c;
+        }
+        return maxCount;
+      })(),
     };
   }, [lowerBound, numericValues, sideCount, span, upperBound, viewMode]);
 
