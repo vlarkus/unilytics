@@ -373,7 +373,7 @@ export const MainScreen: React.FC = () => {
 
             {openMenu === "addPanel" && (
               <div className="add-panel-menu ui-menu absolute right-0 top-full mt-2 w-64 z-50 flex flex-col animate-in fade-in zoom-in-95 duration-100">
-                <div className="p-3 border-b border-border/40 flex items-center gap-2">
+                <div className="p-3 border-b border-gray-700 flex items-center gap-2">
                   <Search size={16} className="text-muted-foreground" />
                   <input
                     type="text"
@@ -493,7 +493,7 @@ export const MainScreen: React.FC = () => {
                   <FolderOpen size={14} /> Import Layout
                 </button>
 
-                <div className="mx-3 my-1 border-t border-border/40" />
+                <div className="mx-3 my-1 border-t border-gray-700" />
 
                 <button
                   className="ui-menu-item text-left px-3 py-2 flex items-center gap-2"
@@ -508,7 +508,7 @@ export const MainScreen: React.FC = () => {
                   <HardDriveUpload size={14} /> Load Project
                 </button>
 
-                <div className="mx-3 my-1 border-t border-border/40" />
+                <div className="mx-3 my-1 border-t border-gray-700" />
 
                 <button
                   className="ui-menu-item text-left px-3 py-2 flex items-center gap-2"
