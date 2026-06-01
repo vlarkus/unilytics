@@ -3,7 +3,7 @@ import './App.css';
 
 function App() {
   return (
-    <div className="dark w-full h-full bg-background text-foreground">
+    <div className="w-full h-full bg-background text-foreground">
       <MainScreen />
     </div>
   );

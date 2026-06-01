@@ -6,10 +6,20 @@ import {
   Actions,
   DockLocation,
 } from "flexlayout-react";
-import { Plus, Search, Save, FolderOpen, Folder, LayoutDashboard } from "lucide-react";
+import { Plus, Search, Save, FolderOpen, Upload, Menu, LayoutGrid, HardDriveDownload, HardDriveUpload, Sun, Moon, Pencil, Trash2 } from "lucide-react";
 import "flexlayout-react/style/light.css";
 import { panelRegistry, defaultLayout } from "./PanelRegistry";
 import { robotTelemetryManager } from "./robot-telemetry-manager";
+import {
+  getSavedLayouts,
+  saveLayout,
+  deleteLayout,
+  renameLayout,
+  getTheme,
+  setTheme,
+  type SavedLayout,
+  type Theme,
+} from "./layout-storage";
 import { WelcomePanel, welcomePanelTags } from "./panels/BuiltInPanels";
 import {
   RobotConnectionPanel,
@@ -42,107 +52,40 @@ import {
 } from "./panels/HeadingVectorPanel";
 
 // Register built-in panels
-panelRegistry.register(
-  "WelcomePanel",
-  WelcomePanel,
-  "Welcome",
-  welcomePanelTags,
-);
-panelRegistry.register(
-  "RobotConnectionPanel",
-  RobotConnectionPanel,
-  "Connection",
-  robotConnectionPanelTags,
-);
-panelRegistry.register(
-  "TelemetryTablePanel",
-  TelemetryTablePanel,
-  "Data Table",
-  telemetryTablePanelTags,
-);
-panelRegistry.register(
-  "PacketSelectionPanel",
-  PacketSelectionPanel,
-  "Select Packets",
-  packetSelectionPanelTags,
-);
-panelRegistry.register(
-  "RoseDiagramPanel",
-  RoseDiagramPanel,
-  "Rose Diagram",
-  RoseDiagramPanelTags,
-);
-panelRegistry.register(
-  "HeadingVectorPanel",
-  HeadingVectorPanel,
-  "Round Dial",
-  headingVectorPanelTags,
-);
-panelRegistry.register(
-  "PieChartPanel",
-  PieChartPanel,
-  "Pie Chart",
-  pieChartPanelTags,
-);
-panelRegistry.register(
-  "TwoDGraphPanel",
-  TwoDGraphPanel,
-  "2D Graph",
-  twoDGraphPanelTags,
-);
-panelRegistry.register(
-  "HistogramPanel",
-  HistogramPanel,
-  "Histogram",
-  histogramPanelTags,
-);
-panelRegistry.register(
-  "LineGraphPanel",
-  LineGraphPanel,
-  "Line Graph",
-  lineGraphPanelTags,
-);
-panelRegistry.register(
-  "HeatmapPanel",
-  HeatmapPanel,
-  "Heatmap",
-  heatmapPanelTags,
-);
-panelRegistry.register(
-  "BoxPlotPanel",
-  BoxPlotPanel,
-  "Box Plot",
-  boxPlotPanelTags,
-);
-panelRegistry.register(
-  "ViolinPlotPanel",
-  ViolinPlotPanel,
-  "Violin Plot",
-  violinPlotPanelTags,
-);
-panelRegistry.register(
-  "VideoSyncPanel",
-  VideoSyncPanel,
-  "Video Sync",
-  videoSyncPanelTags,
-);
-panelRegistry.register(
-  "FilesPanel",
-  FilesPanel,
-  "Files",
-  filesPanelTags,
-);
+panelRegistry.register("WelcomePanel", WelcomePanel, "Welcome", welcomePanelTags, "General");
+panelRegistry.register("RobotConnectionPanel", RobotConnectionPanel, "Connection", robotConnectionPanelTags, "General");
+panelRegistry.register("TelemetryTablePanel", TelemetryTablePanel, "Data Table", telemetryTablePanelTags, "General");
+panelRegistry.register("PacketSelectionPanel", PacketSelectionPanel, "Select Packets", packetSelectionPanelTags, "General");
+panelRegistry.register("FilesPanel", FilesPanel, "Files", filesPanelTags, "General");
+panelRegistry.register("LineGraphPanel", LineGraphPanel, "Line Graph", lineGraphPanelTags, "Charts");
+panelRegistry.register("TwoDGraphPanel", TwoDGraphPanel, "2D Graph", twoDGraphPanelTags, "Charts");
+panelRegistry.register("HistogramPanel", HistogramPanel, "Histogram", histogramPanelTags, "Charts");
+panelRegistry.register("HeatmapPanel", HeatmapPanel, "Heatmap", heatmapPanelTags, "Charts");
+panelRegistry.register("PieChartPanel", PieChartPanel, "Pie Chart", pieChartPanelTags, "Charts");
+panelRegistry.register("BoxPlotPanel", BoxPlotPanel, "Box Plot", boxPlotPanelTags, "Charts");
+panelRegistry.register("ViolinPlotPanel", ViolinPlotPanel, "Violin Plot", violinPlotPanelTags, "Charts");
+panelRegistry.register("RoseDiagramPanel", RoseDiagramPanel, "Rose Diagram", RoseDiagramPanelTags, "Charts");
+panelRegistry.register("HeadingVectorPanel", HeadingVectorPanel, "Round Dial", headingVectorPanelTags, "Charts");
+panelRegistry.register("VideoSyncPanel", VideoSyncPanel, "Video Sync", videoSyncPanelTags, "Media");
+
+const PANEL_CATEGORY_ORDER = ["General", "Charts", "Media"];
 
 
 export const MainScreen: React.FC = () => {
   const logoSrc = `${import.meta.env.BASE_URL}logo.png`;
   const [model, setModel] = useState(() => Model.fromJson(defaultLayout));
-  const [openMenu, setOpenMenu] = useState<"file" | "preset" | "addPanel" | null>(null);
+  const [openMenu, setOpenMenu] = useState<"menu" | "addPanel" | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [showLayoutManager, setShowLayoutManager] = useState(false);
+  const [savedLayouts, setSavedLayouts] = useState<SavedLayout[]>(getSavedLayouts);
+  const [saveLayoutModal, setSaveLayoutModal] = useState(false);
+  const [saveLayoutName, setSaveLayoutName] = useState("");
+  const [currentTheme, setCurrentTheme] = useState<Theme>(getTheme);
   const menuContainerRef = useRef<HTMLDivElement>(null);
-  const openFileInputRef = useRef<HTMLInputElement>(null);
   const openPresetInputRef = useRef<HTMLInputElement>(null);
+  const openProjectInputRef = useRef<HTMLInputElement>(null);
   const nextPanelId = useRef(0);
+  const saveLayoutInputRef = useRef<HTMLInputElement>(null);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -234,29 +177,81 @@ export const MainScreen: React.FC = () => {
         ),
     );
 
-  const onSavePackets = () => {
-    const csv = robotTelemetryManager.exportTelemetryCsv();
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+  const groupedPanels = PANEL_CATEGORY_ORDER
+    .map((category) => ({
+      category,
+      panels: availablePanels.filter((p) => p.category === category),
+    }))
+    .filter((group) => group.panels.length > 0);
+
+  const onSaveCurrentLayout = () => {
+    setOpenMenu(null);
+    setSaveLayoutName(`Layout ${savedLayouts.length + 1}`);
+    setSaveLayoutModal(true);
+    setTimeout(() => saveLayoutInputRef.current?.select(), 50);
+  };
+
+  const onConfirmSaveLayout = () => {
+    const name = saveLayoutName.trim();
+    if (!name) return;
+    saveLayout(name, model.toJson());
+    setSavedLayouts(getSavedLayouts());
+    setSaveLayoutModal(false);
+  };
+
+  const onLoadSavedLayout = (layout: SavedLayout) => {
+    try {
+      const newModel = Model.fromJson(layout.layout);
+      setModel(newModel);
+      setOpenMenu(null);
+      setShowLayoutManager(false);
+    } catch {
+      window.alert("Failed to load layout.");
+    }
+  };
+
+  const onRenameSavedLayout = (layout: SavedLayout) => {
+    const newName = window.prompt("Rename layout", layout.name);
+    if (newName === null) return;
+    const trimmed = newName.trim();
+    if (!trimmed || trimmed === layout.name) return;
+    renameLayout(layout.id, trimmed);
+    setSavedLayouts(getSavedLayouts());
+  };
+
+  const onDeleteSavedLayout = (layout: SavedLayout) => {
+    deleteLayout(layout.id);
+    setSavedLayouts(getSavedLayouts());
+  };
+
+  const onSaveProject = () => {
+    const project = {
+      type: "unilytics-project",
+      layout: model.toJson(),
+      packets: {
+        columns: robotTelemetryManager.getSnapshot().telemetryColumns,
+        rows: robotTelemetryManager.getSnapshot().telemetryRows,
+      },
+    };
+    const blob = new Blob([JSON.stringify(project, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const dateStamp = new Date().toISOString().replaceAll(":", "-");
     const anchor = document.createElement("a");
     anchor.href = url;
-    anchor.download = `packets-${dateStamp}.csv`;
+    anchor.download = `project-${dateStamp}.json`;
     document.body.appendChild(anchor);
     anchor.click();
     document.body.removeChild(anchor);
     URL.revokeObjectURL(url);
+    setOpenMenu(null);
   };
 
-  const onOpenPacketsClick = () => {
-    const shouldOpen = window.confirm(
-      "Open packet file? This will overwrite current packets.",
-    );
-    if (!shouldOpen) return;
-    openFileInputRef.current?.click();
+  const onLoadProjectClick = () => {
+    openProjectInputRef.current?.click();
+    setOpenMenu(null);
   };
 
-  const onOpenPacketsFileChange = async (
+  const onLoadProjectFileChange = async (
     event: React.ChangeEvent<HTMLInputElement>,
   ) => {
     const file = event.target.files?.[0];
@@ -264,14 +259,55 @@ export const MainScreen: React.FC = () => {
 
     try {
       const text = await file.text();
-      const result = robotTelemetryManager.importTelemetryCsv(text);
-      window.alert(`Imported ${result.importedCount} packet rows.`);
+      const project = JSON.parse(text);
+      if (project.type !== "unilytics-project") {
+        throw new Error("Not a valid Unilytics project file.");
+      }
+      if (project.layout) {
+        const newModel = Model.fromJson(project.layout);
+        setModel(newModel);
+      }
+      if (project.packets?.rows) {
+        const rows = project.packets.rows.map(
+          (row: { id?: number; timestamp: number; values: Record<string, unknown> }) => ({
+            id: row.id,
+            timestamp: row.timestamp,
+            values: row.values,
+          }),
+        );
+        robotTelemetryManager.importTelemetryCsv(
+          robotTelemetryManager.exportTelemetryCsv(), // clear first
+        );
+        // Direct import via CSV roundtrip - build CSV from project data
+        const columns = project.packets.columns as string[];
+        const header = ["id", "timestamp", ...columns].join(",");
+        const csvRows = rows.map((row: { id: number; timestamp: number; values: Record<string, unknown> }) => {
+          const cells = [
+            String(row.id ?? ""),
+            String(row.timestamp),
+            ...columns.map((col: string) => {
+              const v = row.values[col];
+              return v === undefined ? "" : String(v);
+            }),
+          ];
+          return cells.join(",");
+        });
+        const csv = [header, ...csvRows].join("\n");
+        robotTelemetryManager.importTelemetryCsv(csv);
+      }
     } catch (error) {
       const message = error instanceof Error ? error.message : "Unknown error";
-      window.alert(`Failed to open packet CSV: ${message}`);
+      window.alert(`Failed to load project: ${message}`);
     } finally {
       event.target.value = "";
     }
+  };
+
+  const onToggleTheme = () => {
+    const next: Theme = currentTheme === "dark" ? "light" : "dark";
+    setTheme(next);
+    setCurrentTheme(next);
+    setOpenMenu(null);
   };
 
   const onSavePreset = () => {
@@ -325,90 +361,10 @@ export const MainScreen: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-2" ref={menuContainerRef}>
-          <input
-            ref={openFileInputRef}
-            type="file"
-            accept=".csv,text/csv"
-            className="hidden"
-            onChange={onOpenPacketsFileChange}
-          />
-          <input
-            ref={openPresetInputRef}
-            type="file"
-            accept=".json,application/json"
-            className="hidden"
-            onChange={onOpenPresetFileChange}
-          />
+          <input ref={openPresetInputRef} type="file" accept=".json,application/json" className="hidden" onChange={onOpenPresetFileChange} />
+          <input ref={openProjectInputRef} type="file" accept=".json,application/json" className="hidden" onChange={onLoadProjectFileChange} />
 
-          {/* File Menu */}
-          <div className="relative">
-            <button
-              className={`ui-icon-btn ${openMenu === "file" ? "ui-icon-btn-active" : ""}`}
-              onClick={() => setOpenMenu(openMenu === "file" ? null : "file")}
-              title="File"
-            >
-              <Folder size={20} />
-            </button>
-
-            {openMenu === "file" && (
-              <div className="add-panel-menu ui-menu absolute right-0 top-full mt-2 w-48 z-50 flex flex-col animate-in fade-in zoom-in-95 duration-100 p-1">
-                <button
-                  className="ui-menu-item text-left px-3 py-2 flex items-center gap-2"
-                  onClick={() => {
-                    onOpenPacketsClick();
-                    setOpenMenu(null);
-                  }}
-                >
-                  <FolderOpen size={16} /> Open
-                </button>
-                <button
-                  className="ui-menu-item text-left px-3 py-2 flex items-center gap-2"
-                  onClick={() => {
-                    onSavePackets();
-                    setOpenMenu(null);
-                  }}
-                >
-                  <Save size={16} /> Save
-                </button>
-              </div>
-            )}
-          </div>
-
-          {/* Preset Menu */}
-          <div className="relative">
-            <button
-              className={`ui-icon-btn ${openMenu === "preset" ? "ui-icon-btn-active" : ""}`}
-              onClick={() => setOpenMenu(openMenu === "preset" ? null : "preset")}
-              title="Presets"
-            >
-              <LayoutDashboard size={20} />
-            </button>
-
-            {openMenu === "preset" && (
-              <div className="add-panel-menu ui-menu absolute right-0 top-full mt-2 w-48 z-50 flex flex-col animate-in fade-in zoom-in-95 duration-100 p-1">
-                <button
-                  className="ui-menu-item text-left px-3 py-2 flex items-center gap-2"
-                  onClick={() => {
-                    onOpenPresetClick();
-                    setOpenMenu(null);
-                  }}
-                >
-                  <FolderOpen size={16} /> Open
-                </button>
-                <button
-                  className="ui-menu-item text-left px-3 py-2 flex items-center gap-2"
-                  onClick={() => {
-                    onSavePreset();
-                    setOpenMenu(null);
-                  }}
-                >
-                  <Save size={16} /> Save
-                </button>
-              </div>
-            )}
-          </div>
-
-          {/* Add Panel Menu */}
+          {/* Add Panel */}
           <div className="relative">
             <button
               className={`ui-icon-btn ${openMenu === "addPanel" ? "ui-icon-btn-active" : ""}`}
@@ -420,7 +376,6 @@ export const MainScreen: React.FC = () => {
 
             {openMenu === "addPanel" && (
               <div className="add-panel-menu ui-menu absolute right-0 top-full mt-2 w-64 z-50 flex flex-col animate-in fade-in zoom-in-95 duration-100">
-                {/* Search Bar */}
                 <div className="p-3 border-b border-border flex items-center gap-2">
                   <Search size={16} className="text-muted-foreground" />
                   <input
@@ -433,17 +388,23 @@ export const MainScreen: React.FC = () => {
                   />
                 </div>
 
-                {/* Panel List */}
-                <div className="max-h-60 overflow-y-auto py-1">
-                  {availablePanels.length > 0 ? (
-                    availablePanels.map((panel) => (
-                      <button
-                        key={panel.type}
-                        className="ui-menu-item"
-                        onClick={() => onAddPanel(panel.type)}
-                      >
-                        <span className="truncate">{panel.displayName}</span>
-                      </button>
+                <div className="max-h-80 overflow-y-auto py-1">
+                  {groupedPanels.length > 0 ? (
+                    groupedPanels.map((group) => (
+                      <div key={group.category}>
+                        <div className="px-3 pt-3 pb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                          {group.category}
+                        </div>
+                        {group.panels.map((panel) => (
+                          <button
+                            key={panel.type}
+                            className="ui-menu-item"
+                            onClick={() => onAddPanel(panel.type)}
+                          >
+                            <span className="truncate">{panel.displayName}</span>
+                          </button>
+                        ))}
+                      </div>
                     ))
                   ) : (
                     <div className="px-4 py-3 text-xs text-muted-foreground text-center">
@@ -454,8 +415,160 @@ export const MainScreen: React.FC = () => {
               </div>
             )}
           </div>
+
+          {/* Hamburger Menu */}
+          <div className="relative">
+            <button
+              className={`ui-icon-btn ${openMenu === "menu" ? "ui-icon-btn-active" : ""}`}
+              onClick={() => {
+                setOpenMenu(openMenu === "menu" ? null : "menu");
+                setShowLayoutManager(false);
+              }}
+              title="Menu"
+            >
+              <Menu size={20} />
+            </button>
+
+            {openMenu === "menu" && (
+              <div className="add-panel-menu ui-menu absolute right-0 top-full mt-2 w-56 z-50 flex flex-col animate-in fade-in zoom-in-95 duration-100 p-1">
+                <button
+                  className="ui-menu-item text-left px-3 py-2 flex items-center gap-2"
+                  onClick={onSaveCurrentLayout}
+                >
+                  <Save size={14} /> Save Current Layout
+                </button>
+                <button
+                  className={`ui-menu-item text-left px-3 py-2 flex items-center gap-2 ${showLayoutManager ? "bg-accent text-accent-foreground" : ""}`}
+                  onClick={() => setShowLayoutManager(!showLayoutManager)}
+                >
+                  <LayoutGrid size={14} /> Layout Manager
+                </button>
+
+                {showLayoutManager && (
+                  <div className="border-t border-b border-border my-1 max-h-40 overflow-y-auto">
+                    {savedLayouts.length === 0 ? (
+                      <div className="px-3 py-3 text-xs text-muted-foreground text-center">
+                        No layouts saved yet.
+                      </div>
+                    ) : (
+                      savedLayouts.map((layout) => (
+                        <div
+                          key={layout.id}
+                          className="flex items-center gap-1 px-3 py-1.5 hover:bg-accent group"
+                        >
+                          <button
+                            className="flex-1 text-left text-sm truncate hover:text-accent-foreground"
+                            onClick={() => onLoadSavedLayout(layout)}
+                            title={`Load "${layout.name}"`}
+                          >
+                            {layout.name}
+                          </button>
+                          <button
+                            className="p-1 rounded opacity-50 hover:opacity-100 hover:bg-secondary"
+                            onClick={() => onRenameSavedLayout(layout)}
+                            title="Rename layout"
+                          >
+                            <Pencil size={12} />
+                          </button>
+                          <button
+                            className="p-1 rounded opacity-50 hover:opacity-100 hover:bg-secondary"
+                            onClick={() => onDeleteSavedLayout(layout)}
+                            title="Delete layout"
+                          >
+                            <Trash2 size={12} />
+                          </button>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                )}
+
+                <button
+                  className="ui-menu-item text-left px-3 py-2 flex items-center gap-2"
+                  onClick={() => {
+                    onSavePreset();
+                    setOpenMenu(null);
+                  }}
+                >
+                  <Upload size={14} /> Export Layout...
+                </button>
+                <button
+                  className="ui-menu-item text-left px-3 py-2 flex items-center gap-2"
+                  onClick={() => {
+                    onOpenPresetClick();
+                    setOpenMenu(null);
+                  }}
+                >
+                  <FolderOpen size={14} /> Import Layout...
+                </button>
+
+                <div className="my-1 border-t border-border" />
+
+                <button
+                  className="ui-menu-item text-left px-3 py-2 flex items-center gap-2"
+                  onClick={onSaveProject}
+                >
+                  <HardDriveDownload size={14} /> Save Project
+                </button>
+                <button
+                  className="ui-menu-item text-left px-3 py-2 flex items-center gap-2"
+                  onClick={onLoadProjectClick}
+                >
+                  <HardDriveUpload size={14} /> Load Project
+                </button>
+
+                <div className="my-1 border-t border-border" />
+
+                <button
+                  className="ui-menu-item text-left px-3 py-2 flex items-center gap-2"
+                  onClick={onToggleTheme}
+                >
+                  {currentTheme === "dark" ? <Sun size={14} /> : <Moon size={14} />}
+                  {currentTheme === "dark" ? "Light mode" : "Dark mode"}
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
+
+      {/* Save Layout Modal */}
+      {saveLayoutModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60">
+          <div className="ui-card w-full max-w-md mx-4 p-6">
+            <h2 className="text-lg font-semibold mb-1">Save Layout</h2>
+            <p className="text-sm text-muted-foreground mb-4">
+              Enter a name for this workspace arrangement.
+            </p>
+            <input
+              ref={saveLayoutInputRef}
+              type="text"
+              className="ui-input w-full mb-4"
+              value={saveLayoutName}
+              onChange={(e) => setSaveLayoutName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") onConfirmSaveLayout();
+                if (e.key === "Escape") setSaveLayoutModal(false);
+              }}
+              placeholder="Layout name"
+            />
+            <div className="flex justify-end gap-2">
+              <button
+                className="ui-btn ui-btn-outline"
+                onClick={() => setSaveLayoutModal(false)}
+              >
+                Cancel
+              </button>
+              <button
+                className="ui-btn bg-primary text-primary-foreground hover:bg-primary/90"
+                onClick={onConfirmSaveLayout}
+              >
+                Confirm
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Workspace */}
       <div className="flex-1 min-h-0 relative bg-background p-2">

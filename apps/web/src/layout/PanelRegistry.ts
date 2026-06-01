@@ -12,22 +12,24 @@ export interface PanelDefinition {
     type: string;
     displayName: string;
     tags: string[];
+    category: string;
 }
 
 interface PanelRegistration {
     component: PanelComponent;
     displayName: string;
     tags: string[];
+    category: string;
 }
 
 class PanelRegistry {
     private panels: Map<string, PanelRegistration> = new Map();
 
-    register(type: string, component: PanelComponent, displayName: string = type, tags: string[] = []) {
+    register(type: string, component: PanelComponent, displayName: string = type, tags: string[] = [], category = "General") {
         if (this.panels.has(type)) {
             console.warn(`Panel type "${type}" is already registered. Overwriting.`);
         }
-        this.panels.set(type, { component, displayName, tags });
+        this.panels.set(type, { component, displayName, tags, category });
     }
 
     get(type: string): PanelComponent | undefined {
@@ -47,6 +49,7 @@ class PanelRegistry {
             type,
             displayName: panel.displayName,
             tags: panel.tags,
+            category: panel.category,
         }));
     }
 }
