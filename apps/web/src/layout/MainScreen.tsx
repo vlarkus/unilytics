@@ -429,6 +429,45 @@ export const MainScreen: React.FC = () => {
               <Menu size={20} />
             </button>
 
+            {openMenu === "menu" && showLayoutManager && (
+              <div className="add-panel-menu ui-menu absolute top-full mt-2 w-56 z-50 p-1 animate-in fade-in zoom-in-95 duration-100 max-h-60 overflow-y-auto" style={{ right: "calc(14rem + 0.5rem)" }}>
+                {savedLayouts.length === 0 ? (
+                  <div className="px-3 py-3 text-xs text-muted-foreground text-center">
+                    No layouts saved yet.
+                  </div>
+                ) : (
+                  savedLayouts.map((layout) => (
+                    <div
+                      key={layout.id}
+                      className="flex items-center gap-1 px-2 py-1.5 rounded hover:bg-accent group"
+                    >
+                      <button
+                        className="flex-1 text-left text-sm truncate hover:text-accent-foreground"
+                        onClick={() => onLoadSavedLayout(layout)}
+                        title={`Load "${layout.name}"`}
+                      >
+                        {layout.name}
+                      </button>
+                      <button
+                        className="p-1 rounded opacity-50 hover:opacity-100 hover:bg-secondary"
+                        onClick={() => onRenameSavedLayout(layout)}
+                        title="Rename layout"
+                      >
+                        <Pencil size={12} />
+                      </button>
+                      <button
+                        className="p-1 rounded opacity-50 hover:opacity-100 hover:bg-secondary"
+                        onClick={() => onDeleteSavedLayout(layout)}
+                        title="Delete layout"
+                      >
+                        <Trash2 size={12} />
+                      </button>
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
+
             {openMenu === "menu" && (
               <div className="add-panel-menu ui-menu absolute right-0 top-full mt-2 w-56 z-50 flex flex-col animate-in fade-in zoom-in-95 duration-100 p-1">
                 <button
@@ -443,45 +482,6 @@ export const MainScreen: React.FC = () => {
                 >
                   <LayoutGrid size={14} /> Layout Manager
                 </button>
-
-                {showLayoutManager && (
-                  <div className="border-t border-b border-muted-foreground/20 mx-3 my-1 max-h-40 overflow-y-auto">
-                    {savedLayouts.length === 0 ? (
-                      <div className="px-3 py-3 text-xs text-muted-foreground text-center">
-                        No layouts saved yet.
-                      </div>
-                    ) : (
-                      savedLayouts.map((layout) => (
-                        <div
-                          key={layout.id}
-                          className="flex items-center gap-1 px-3 py-1.5 hover:bg-accent group"
-                        >
-                          <button
-                            className="flex-1 text-left text-sm truncate hover:text-accent-foreground"
-                            onClick={() => onLoadSavedLayout(layout)}
-                            title={`Load "${layout.name}"`}
-                          >
-                            {layout.name}
-                          </button>
-                          <button
-                            className="p-1 rounded opacity-50 hover:opacity-100 hover:bg-secondary"
-                            onClick={() => onRenameSavedLayout(layout)}
-                            title="Rename layout"
-                          >
-                            <Pencil size={12} />
-                          </button>
-                          <button
-                            className="p-1 rounded opacity-50 hover:opacity-100 hover:bg-secondary"
-                            onClick={() => onDeleteSavedLayout(layout)}
-                            title="Delete layout"
-                          >
-                            <Trash2 size={12} />
-                          </button>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                )}
 
                 <button
                   className="ui-menu-item text-left px-3 py-2 flex items-center gap-2"
