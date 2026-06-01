@@ -13,6 +13,16 @@ import { SearchableSelect } from "../../components/SearchableSelect";
 
 export const violinPlotPanelTags = ["chart", "violin", "density", "analysis"];
 
+const computeMinMax = (arr: number[], defaultMin: number, defaultMax: number) => {
+  if (arr.length === 0) return { min: defaultMin, max: defaultMax };
+  let min = arr[0], max = arr[0];
+  for (let i = 1; i < arr.length; i++) {
+    if (arr[i] < min) min = arr[i];
+    if (arr[i] > max) max = arr[i];
+  }
+  return { min, max };
+};
+
 type ScaleMode = "auto" | "manual";
 type FullScreenFitMode = "fill" | "square";
 type OrientationMode = "auto" | "vertical" | "horizontal";
@@ -82,8 +92,9 @@ export const ViolinPlotPanel: React.FC<PanelProps> = () => {
     [selectedEntries, selectedVariable],
   );
 
-  const yAutoMin = values.length > 0 ? Math.min(...values) : -100;
-  const yAutoMax = values.length > 0 ? Math.max(...values) : 100;
+  const autoRange = computeMinMax(values, -100, 100);
+  const yAutoMin = autoRange.min;
+  const yAutoMax = autoRange.max;
   const yManualMin = parseNumber(yMinInput, yAutoMin);
   const yManualMax = parseNumber(yMaxInput, yAutoMax);
   const yMin = yScaleMode === "auto" ? yAutoMin : Math.min(yManualMin, yManualMax);
@@ -115,7 +126,10 @@ export const ViolinPlotPanel: React.FC<PanelProps> = () => {
       const right = bins[Math.min(index + 1, binCount - 1)];
       return (left + mid * 2 + right) / 4;
     });
-    const maxDensity = Math.max(...smoothed, 1);
+    let maxDensity = 1;
+    for (const v of smoothed) {
+      if (v > maxDensity) maxDensity = v;
+    }
 
     return {
       bins: smoothed,

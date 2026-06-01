@@ -13,6 +13,22 @@ import { SearchableSelect } from "../../components/SearchableSelect";
 
 export const twoDGraphPanelTags = ["chart", "2d", "graph", "visualization", "analysis"];
 
+const computeBounds = (
+  arr: { x: number; y: number }[],
+  defaults: { xMin: number; xMax: number; yMin: number; yMax: number },
+) => {
+  if (arr.length === 0) return defaults;
+  let xMin = arr[0].x, xMax = arr[0].x, yMin = arr[0].y, yMax = arr[0].y;
+  for (let i = 1; i < arr.length; i++) {
+    const { x, y } = arr[i];
+    if (x < xMin) xMin = x;
+    if (x > xMax) xMax = x;
+    if (y < yMin) yMin = y;
+    if (y > yMax) yMax = y;
+  }
+  return { xMin, xMax, yMin, yMax };
+};
+
 type ScaleMode = "auto" | "manual";
 type FullScreenFitMode = "fill" | "square";
 
@@ -81,10 +97,11 @@ export const TwoDGraphPanel: React.FC<PanelProps> = () => {
     [selectedEntries, xVariable, yVariable],
   );
 
-  const autoXMin = points.length > 0 ? Math.min(...points.map((point) => point.x)) : -72;
-  const autoXMax = points.length > 0 ? Math.max(...points.map((point) => point.x)) : 72;
-  const autoYMin = points.length > 0 ? Math.min(...points.map((point) => point.y)) : -72;
-  const autoYMax = points.length > 0 ? Math.max(...points.map((point) => point.y)) : 72;
+  const bounds = computeBounds(points, { xMin: -72, xMax: 72, yMin: -72, yMax: 72 });
+  const autoXMin = bounds.xMin;
+  const autoXMax = bounds.xMax;
+  const autoYMin = bounds.yMin;
+  const autoYMax = bounds.yMax;
 
   const manualXMin = parseNumber(xMinInput, autoXMin);
   const manualXMax = parseNumber(xMaxInput, autoXMax);
@@ -106,6 +123,17 @@ export const TwoDGraphPanel: React.FC<PanelProps> = () => {
       ),
     [points, xHigh, xLow, yHigh, yLow],
   );
+
+  const MAX_RENDERED_POINTS = 500;
+  const downsampledPoints = React.useMemo(() => {
+    if (visiblePoints.length <= MAX_RENDERED_POINTS) return visiblePoints;
+    const step = visiblePoints.length / MAX_RENDERED_POINTS;
+    const result: typeof visiblePoints = [];
+    for (let i = 0; i < MAX_RENDERED_POINTS; i++) {
+      result.push(visiblePoints[Math.floor(i * step)]);
+    }
+    return result;
+  }, [visiblePoints]);
 
   const chartSize = 620;
   const padding = 58;
@@ -183,7 +211,7 @@ export const TwoDGraphPanel: React.FC<PanelProps> = () => {
               strokeWidth="1"
             />
 
-            {visiblePoints.map((point, index) => (
+            {downsampledPoints.map((point, index) => (
               <circle
                 key={`${point.x}-${point.y}-${index}`}
                 cx={toSvgX(point.x)}

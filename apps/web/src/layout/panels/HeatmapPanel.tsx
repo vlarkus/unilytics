@@ -13,6 +13,22 @@ import { SearchableSelect } from "../../components/SearchableSelect";
 
 export const heatmapPanelTags = ["chart", "heatmap", "grid", "analysis"];
 
+const computeBounds = (
+  arr: { x: number; y: number }[],
+  defaults: { xMin: number; xMax: number; yMin: number; yMax: number },
+) => {
+  if (arr.length === 0) return defaults;
+  let xMin = arr[0].x, xMax = arr[0].x, yMin = arr[0].y, yMax = arr[0].y;
+  for (let i = 1; i < arr.length; i++) {
+    const { x, y } = arr[i];
+    if (x < xMin) xMin = x;
+    if (x > xMax) xMax = x;
+    if (y < yMin) yMin = y;
+    if (y > yMax) yMax = y;
+  }
+  return { xMin, xMax, yMin, yMax };
+};
+
 type ScaleMode = "auto" | "manual";
 type ValueMode = "count" | "percent";
 
@@ -87,10 +103,11 @@ export const HeatmapPanel: React.FC<PanelProps> = () => {
   const xBins = Math.min(60, Math.max(1, Math.round(parseNumber(xBinsInput, 12))));
   const yBins = Math.min(60, Math.max(1, Math.round(parseNumber(yBinsInput, 12))));
 
-  const autoXMin = points.length > 0 ? Math.min(...points.map((point) => point.x)) : -100;
-  const autoXMax = points.length > 0 ? Math.max(...points.map((point) => point.x)) : 100;
-  const autoYMin = points.length > 0 ? Math.min(...points.map((point) => point.y)) : -100;
-  const autoYMax = points.length > 0 ? Math.max(...points.map((point) => point.y)) : 100;
+  const bounds = computeBounds(points, { xMin: -100, xMax: 100, yMin: -100, yMax: 100 });
+  const autoXMin = bounds.xMin;
+  const autoXMax = bounds.xMax;
+  const autoYMin = bounds.yMin;
+  const autoYMax = bounds.yMax;
 
   const manualXMin = parseNumber(xMinInput, autoXMin);
   const manualXMax = parseNumber(xMaxInput, autoXMax);
@@ -122,7 +139,12 @@ export const HeatmapPanel: React.FC<PanelProps> = () => {
       counts[yIndex][xIndex] += 1;
     });
 
-    const maxCount = Math.max(...counts.flat(), 1);
+    let maxCount = 1;
+    for (const row of counts) {
+      for (const c of row) {
+        if (c > maxCount) maxCount = c;
+      }
+    }
 
     return {
       counts,

@@ -13,6 +13,16 @@ import { SearchableSelect } from "../../components/SearchableSelect";
 
 export const histogramPanelTags = ["chart", "histogram", "distribution", "analysis"];
 
+const computeMinMax = (arr: number[], defaultMin: number, defaultMax: number) => {
+  if (arr.length === 0) return { min: defaultMin, max: defaultMax };
+  let min = arr[0], max = arr[0];
+  for (let i = 1; i < arr.length; i++) {
+    if (arr[i] < min) min = arr[i];
+    if (arr[i] > max) max = arr[i];
+  }
+  return { min, max };
+};
+
 type RangeMode = "auto" | "manual";
 type ValueMode = "count" | "percent";
 type FullScreenFitMode = "fill" | "square";
@@ -81,8 +91,9 @@ export const HistogramPanel: React.FC<PanelProps> = () => {
 
   const bins = Math.min(60, Math.max(1, Math.round(parseNumber(binsInput, 12))));
 
-  const autoMin = numericValues.length > 0 ? Math.min(...numericValues) : -100;
-  const autoMax = numericValues.length > 0 ? Math.max(...numericValues) : 100;
+  const autoRange = computeMinMax(numericValues, -100, 100);
+  const autoMin = autoRange.min;
+  const autoMax = autoRange.max;
   const manualMin = parseNumber(minInput, autoMin);
   const manualMax = parseNumber(maxInput, autoMax);
 
@@ -112,7 +123,10 @@ export const HistogramPanel: React.FC<PanelProps> = () => {
       computedBins[index].count += 1;
     });
 
-    const maxCount = Math.max(...computedBins.map((bin) => bin.count), 1);
+    let maxCount = 1;
+    for (const bin of computedBins) {
+      if (bin.count > maxCount) maxCount = bin.count;
+    }
 
     return {
       bins: computedBins,
