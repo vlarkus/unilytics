@@ -6,6 +6,9 @@ import { useRobotTelemetry } from "../use-robot-telemetry";
 
 export const telemetryTablePanelTags = ["telemetry", "data", "table", "logs"];
 
+const ROW_HEIGHT = 32;
+const OVERSCAN = 5;
+
 const formatTimestamp = (timestamp: number) =>
   new Date(timestamp).toLocaleTimeString([], {
     hour12: false,
@@ -19,6 +22,26 @@ export const TelemetryTablePanel: React.FC<PanelProps> = () => {
   const [sortColumn, setSortColumn] = React.useState<string | "timestamp">("timestamp");
   const [sortDirection, setSortDirection] = React.useState<"asc" | "desc">("desc");
   const [visibleColumns, setVisibleColumns] = React.useState<Set<string>>(new Set());
+
+  const scrollContainerRef = React.useRef<HTMLDivElement>(null);
+  const [scrollTop, setScrollTop] = React.useState(0);
+  const [containerHeight, setContainerHeight] = React.useState(400);
+
+  React.useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        setContainerHeight(entry.contentRect.height);
+      }
+    });
+    observer.observe(container);
+    return () => observer.disconnect();
+  }, []);
+
+  const handleScroll = React.useCallback((e: React.UIEvent<HTMLDivElement>) => {
+    setScrollTop(e.currentTarget.scrollTop);
+  }, []);
 
   React.useEffect(() => {
     setVisibleColumns((prev) => {
@@ -80,6 +103,20 @@ export const TelemetryTablePanel: React.FC<PanelProps> = () => {
     if (sortColumn !== column) return "";
     return sortDirection === "asc" ? " ^" : " v";
   };
+
+  const displayedColumns = React.useMemo(
+    () => telemetryColumns.filter((col) => visibleColumns.has(col)),
+    [telemetryColumns, visibleColumns],
+  );
+
+  const visibleStart = Math.max(0, Math.floor(scrollTop / ROW_HEIGHT) - OVERSCAN);
+  const visibleEnd = Math.min(
+    rows.length,
+    Math.ceil((scrollTop + containerHeight) / ROW_HEIGHT) + OVERSCAN,
+  );
+  const visibleRows = rows.slice(visibleStart, visibleEnd);
+  const topPad = visibleStart * ROW_HEIGHT;
+  const bottomPad = (rows.length - visibleEnd) * ROW_HEIGHT;
 
   return (
     <div className="panel-content">
@@ -151,7 +188,7 @@ export const TelemetryTablePanel: React.FC<PanelProps> = () => {
               No telemetry yet. Connect in the Connection panel to start collecting packets.
             </div>
           ) : (
-            <div className="overflow-auto flex-1 min-h-0">
+            <div className="overflow-auto flex-1 min-h-0" ref={scrollContainerRef} onScroll={handleScroll}>
               <table className="ui-table">
                 <thead className="sticky top-0 bg-card z-10 shadow-sm">
                   <tr>
@@ -164,37 +201,43 @@ export const TelemetryTablePanel: React.FC<PanelProps> = () => {
                         Time{getSortIndicator("timestamp")}
                       </button>
                     </th>
-                    {telemetryColumns
-                      .filter((col) => visibleColumns.has(col))
-                      .map((column) => (
-                        <th key={column}>
-                          <button
-                            type="button"
-                            className="inline-flex items-center whitespace-nowrap font-semibold"
-                            onClick={() => handleSort(column)}
-                          >
-                            {column}
-                            {getSortIndicator(column)}
-                          </button>
-                        </th>
-                      ))}
+                    {displayedColumns.map((column) => (
+                      <th key={column}>
+                        <button
+                          type="button"
+                          className="inline-flex items-center whitespace-nowrap font-semibold"
+                          onClick={() => handleSort(column)}
+                        >
+                          {column}
+                          {getSortIndicator(column)}
+                        </button>
+                      </th>
+                    ))}
                   </tr>
                 </thead>
                 <tbody>
-                  {rows.map((row) => (
-                    <tr key={row.id}>
+                  {topPad > 0 && (
+                    <tr style={{ height: topPad }} aria-hidden="true">
+                      <td colSpan={displayedColumns.length + 1} style={{ padding: 0, border: 'none' }} />
+                    </tr>
+                  )}
+                  {visibleRows.map((row) => (
+                    <tr key={row.id} style={{ height: ROW_HEIGHT }}>
                       <td>{formatTimestamp(row.timestamp)}</td>
-                      {telemetryColumns
-                        .filter((col) => visibleColumns.has(col))
-                        .map((column) => (
-                          <td key={`${row.id}-${column}`}>
-                            {row.values[column] === undefined
-                              ? "-"
-                              : String(row.values[column])}
-                          </td>
-                        ))}
+                      {displayedColumns.map((column) => (
+                        <td key={`${row.id}-${column}`}>
+                          {row.values[column] === undefined
+                            ? "-"
+                            : String(row.values[column])}
+                        </td>
+                      ))}
                     </tr>
                   ))}
+                  {bottomPad > 0 && (
+                    <tr style={{ height: bottomPad }} aria-hidden="true">
+                      <td colSpan={displayedColumns.length + 1} style={{ padding: 0, border: 'none' }} />
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>
