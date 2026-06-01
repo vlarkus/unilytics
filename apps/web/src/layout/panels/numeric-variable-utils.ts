@@ -17,7 +17,7 @@ export interface SelectedRowEntry {
 }
 
 export const getNumericVariableOptions = (
-  telemetryColumns: string[],
+  telemetryColumns: readonly string[],
 ): NumericVariableOption[] => [
   { value: PACKET_NUMBER_KEY, label: "Packet Number" },
   { value: TIMESTAMP_KEY, label: "Timestamp (ms)" },
@@ -25,7 +25,7 @@ export const getNumericVariableOptions = (
 ];
 
 export const getSelectedRowEntries = (
-  telemetryRows: TelemetryRow[],
+  telemetryRows: readonly TelemetryRow[],
   packetSelection: PacketSelection,
 ): SelectedRowEntry[] => {
   if (telemetryRows.length === 0) return [];
