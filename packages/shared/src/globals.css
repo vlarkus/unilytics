@@ -784,7 +784,7 @@ body {
     text-align: left;
     display: inline-flex;
     align-items: center;
-    border: 1px solid transparent;
+    border: none;
     border-radius: calc(var(--radius) - 4px);
     margin: 0.125rem 0.25rem;
     padding: 0.45rem 0.6rem;
@@ -797,13 +797,12 @@ body {
     overflow: hidden;
     text-overflow: ellipsis;
     transform: translateY(0) scale(1);
-    transition: transform 0.12s ease, background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+    transition: transform 0.12s ease, background-color 0.15s ease, color 0.15s ease;
   }
 
   .ui-menu-item:hover {
     background-color: hsl(var(--accent));
     color: hsl(var(--accent-foreground));
-    border-color: hsl(var(--border));
   }
 
   .ui-menu-item:active {

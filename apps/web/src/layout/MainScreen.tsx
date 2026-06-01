@@ -373,7 +373,7 @@ export const MainScreen: React.FC = () => {
 
             {openMenu === "addPanel" && (
               <div className="add-panel-menu ui-menu absolute right-0 top-full mt-2 w-64 z-50 flex flex-col animate-in fade-in zoom-in-95 duration-100">
-                <div className="p-3 border-b border-border flex items-center gap-2">
+                <div className="p-3 border-b border-border/40 flex items-center gap-2">
                   <Search size={16} className="text-muted-foreground" />
                   <input
                     type="text"
@@ -389,13 +389,13 @@ export const MainScreen: React.FC = () => {
                   {groupedPanels.length > 0 ? (
                     groupedPanels.map((group) => (
                       <div key={group.category}>
-                        <div className="px-3 pt-3 pb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                        <div className="px-3 pt-3 pb-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
                           {group.category}
                         </div>
                         {group.panels.map((panel) => (
                           <button
                             key={panel.type}
-                            className="ui-menu-item"
+                            className="ui-menu-item text-muted-foreground hover:text-accent-foreground"
                             onClick={() => onAddPanel(panel.type)}
                           >
                             <span className="truncate">{panel.displayName}</span>
@@ -493,7 +493,7 @@ export const MainScreen: React.FC = () => {
                   <FolderOpen size={14} /> Import Layout
                 </button>
 
-                <div className="mx-3 my-1 border-t border-muted-foreground/10" />
+                <div className="mx-3 my-1 border-t border-border/40" />
 
                 <button
                   className="ui-menu-item text-left px-3 py-2 flex items-center gap-2"
@@ -508,7 +508,7 @@ export const MainScreen: React.FC = () => {
                   <HardDriveUpload size={14} /> Load Project
                 </button>
 
-                <div className="mx-3 my-1 border-t border-muted-foreground/10" />
+                <div className="mx-3 my-1 border-t border-border/40" />
 
                 <button
                   className="ui-menu-item text-left px-3 py-2 flex items-center gap-2"
