@@ -430,7 +430,7 @@ export const MainScreen: React.FC = () => {
             </button>
 
             {openMenu === "menu" && showLayoutManager && (
-              <div className="add-panel-menu ui-menu absolute top-full mt-2 w-56 z-50 p-1 animate-in fade-in zoom-in-95 duration-100 max-h-60 overflow-y-auto" style={{ right: "calc(14rem + 0.5rem)" }}>
+              <div className="add-panel-menu ui-menu absolute w-56 z-50 p-1 animate-in fade-in zoom-in-95 duration-100 max-h-60 overflow-y-auto" style={{ right: "calc(14rem + 0.5rem)", top: "calc(100% + 0.5rem + 43px)" }}>
                 {savedLayouts.length === 0 ? (
                   <div className="px-3 py-3 text-xs text-muted-foreground text-center">
                     No layouts saved yet.
@@ -490,7 +490,7 @@ export const MainScreen: React.FC = () => {
                     setOpenMenu(null);
                   }}
                 >
-                  <Upload size={14} /> Export Layout...
+                  <Upload size={14} /> Export Layout
                 </button>
                 <button
                   className="ui-menu-item text-left px-3 py-2 flex items-center gap-2"
@@ -499,10 +499,10 @@ export const MainScreen: React.FC = () => {
                     setOpenMenu(null);
                   }}
                 >
-                  <FolderOpen size={14} /> Import Layout...
+                  <FolderOpen size={14} /> Import Layout
                 </button>
 
-                <div className="mx-3 my-1 border-t border-muted-foreground/20" />
+                <div className="mx-3 my-1 border-t border-muted-foreground/10" />
 
                 <button
                   className="ui-menu-item text-left px-3 py-2 flex items-center gap-2"
@@ -517,7 +517,7 @@ export const MainScreen: React.FC = () => {
                   <HardDriveUpload size={14} /> Load Project
                 </button>
 
-                <div className="mx-3 my-1 border-t border-muted-foreground/20" />
+                <div className="mx-3 my-1 border-t border-muted-foreground/10" />
 
                 <button
                   className="ui-menu-item text-left px-3 py-2 flex items-center gap-2"
