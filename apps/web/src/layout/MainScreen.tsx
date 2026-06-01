@@ -243,12 +243,10 @@ export const MainScreen: React.FC = () => {
     anchor.click();
     document.body.removeChild(anchor);
     URL.revokeObjectURL(url);
-    setOpenMenu(null);
   };
 
   const onLoadProjectClick = () => {
     openProjectInputRef.current?.click();
-    setOpenMenu(null);
   };
 
   const onLoadProjectFileChange = async (
@@ -307,7 +305,6 @@ export const MainScreen: React.FC = () => {
     const next: Theme = currentTheme === "dark" ? "light" : "dark";
     setTheme(next);
     setCurrentTheme(next);
-    setOpenMenu(null);
   };
 
   const onSavePreset = () => {
@@ -485,19 +482,13 @@ export const MainScreen: React.FC = () => {
 
                 <button
                   className="ui-menu-item text-left px-3 py-2 flex items-center gap-2"
-                  onClick={() => {
-                    onSavePreset();
-                    setOpenMenu(null);
-                  }}
+                  onClick={onSavePreset}
                 >
                   <Upload size={14} /> Export Layout
                 </button>
                 <button
                   className="ui-menu-item text-left px-3 py-2 flex items-center gap-2"
-                  onClick={() => {
-                    onOpenPresetClick();
-                    setOpenMenu(null);
-                  }}
+                  onClick={onOpenPresetClick}
                 >
                   <FolderOpen size={14} /> Import Layout
                 </button>
