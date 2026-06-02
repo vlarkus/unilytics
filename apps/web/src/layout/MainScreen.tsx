@@ -395,7 +395,7 @@ export const MainScreen: React.FC = () => {
                         {group.panels.map((panel) => (
                           <button
                             key={panel.type}
-                            className="ui-menu-item text-muted-foreground hover:text-accent-foreground"
+                            className="ui-menu-item ui-menu-item-muted"
                             onClick={() => onAddPanel(panel.type)}
                           >
                             <span className="truncate">{panel.displayName}</span>

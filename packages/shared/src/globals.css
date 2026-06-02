@@ -805,6 +805,14 @@ body {
     color: hsl(var(--accent-foreground));
   }
 
+  .ui-menu-item-muted {
+    color: hsl(var(--muted-foreground));
+  }
+
+  .ui-menu-item-muted:hover {
+    color: hsl(var(--accent-foreground));
+  }
+
   .ui-menu-item:active {
     transform: translateY(1px) scale(0.98);
   }
